@@ -13,4 +13,4 @@ optional arguments:
   
 when adding the stock symbol, quantity and price are required
 
-Program will create 2 files in the installed directory to store your portfolio info (cost.npy and stocks.npy)
+Program will create 2 files in the users home directory to store portfolio info (cost.npy and stocks.npy)
