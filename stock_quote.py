@@ -67,7 +67,7 @@ def getcurrentprice(symbol):
           change=float('-'+change)
      day[symbol]=(float(change)*(stocks[symbol]))
      value[symbol] =((stocks[symbol])*(s))
-     print('{:<4} {:<8} {:<14} {:<16} {:<16}'.format
+     print('{:<4} {:<8} {:<16} {:<16} {:<16}'.format
            (symbol,
             ' $'+str(s),
             str((data[1]).strip('"')),
@@ -96,9 +96,10 @@ gain=sum(day.values())
 mkt=sum(value.values())
 cst=sum(cost.values())
 
+
 print()
 print('Day Change =  $'+str(round(gain,2)) +
-     ', %' + str(round(((mkt-gain)/mkt),2)))
+     ', %' + str(round(((mkt/(mkt-gain)/100)),2)))
 print('Totals: Cost $' + str(cst) +
        ' Value $' + str(round(mkt,2)) +
        ' Gain $' + str(round((mkt-cst),2)) +

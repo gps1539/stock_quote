@@ -1,7 +1,7 @@
 # stock_quote
 python script for getting stock quotes from yahoo and calculating gains and losses.
 
-I wrote this to learn python, so expect issues and bugs. Feedback and suggestions welcome.
+I wrote this to learn python, so expect bugs. Feedback and suggestions welcome.
 
 usage: stock_quote.py [-h] [--add ADD [ADD ...]] [--delete DELETE]
 
