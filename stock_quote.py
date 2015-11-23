@@ -17,9 +17,7 @@ if args.add:
           print('symbol, quantity and price are required with --add')
           sys.exit(1)
 
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+os.chdir(os.path.expanduser("~"))
 
 if os.path.exists('stocks.npy')==False:
      stocks={}
