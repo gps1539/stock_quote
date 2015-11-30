@@ -14,3 +14,6 @@ optional arguments:
 when adding the stock symbol, quantity and price are required
 
 Program will create 2 files in the users home directory to store portfolio info (cost.npy and stocks.npy)
+
+For continuous updates watch (bash) is useful:
+watch -n 5 --color stock_quote.py
