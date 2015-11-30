@@ -6,6 +6,8 @@ import re
 import getopt
 import numpy as np
 import argparse
+from colorama import init, Fore, Back, Style
+init()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
@@ -65,15 +67,22 @@ def getcurrentprice(symbol):
      change=((data[1][2:7]).strip('-'))
      if (data[1][1])=='-':
           change=float('-'+change)
+          col=(Fore.RED)
+     else:
+          col=(Fore.GREEN)
+     if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
+          tcol=(Fore.RED)
+     else:
+          tcol=(Fore.GREEN)
      day[symbol]=(float(change)*(stocks[symbol]))
      value[symbol] =((stocks[symbol])*(s))
      print('{:<4} {:<8} {:<16} {:<16} {:<16}'.format
            (symbol,
             ' $'+str(s),
-            str((data[1]).strip('"')),
+            col + str((data[1]).strip('"')) + Style.RESET_ALL,
             'value $'+ str(round((stocks[symbol])*(s),2)),
-            'gain $'+ str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
-            '%'+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2)))
+            'gain $'+ tcol + str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
+            '%'+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2)) + Style.RESET_ALL)
 
 if args.add:
      sym=str(args.add[0])
@@ -93,15 +102,27 @@ for key in sorted(stocks.keys()):
 	getcurrentprice(key)
 
 gain=sum(day.values())
+
+if (gain)<0:
+     pgain=(Fore.RED + str(round(gain,2)))
+else:
+     pgain=(Fore.GREEN + str(round(gain,2)))
+
 mkt=sum(value.values())
 cst=sum(cost.values())
+tgain=(round((mkt-cst),2))
 
+if (tgain)<0:
+     ptgain=(Fore.RED + str(tgain))
+else:
+     ptgain=(Fore.GREEN + str(tgain))
+     
 
 print()
-print('Day Change =  $'+str(round(gain,2)) +
+print('Day Change =  $'+pgain +
      ', %' + str(round(((mkt/(mkt-gain)/100)),2)))
+print(Style.RESET_ALL)
 print('Totals: Cost $' + str(cst) +
        ' Value $' + str(round(mkt,2)) +
-       ' Gain $' + str(round((mkt-cst),2)) +
+       ' Gain $' + ptgain +
        ', %' + str(round((100*(mkt-cst)/cst),2)))
-       
