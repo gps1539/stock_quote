@@ -9,6 +9,7 @@ import argparse
 from colorama import init, Fore, Back, Style
 init()
 
+# command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("--delete", help="delete a symbol")
@@ -19,8 +20,10 @@ if args.add:
           print('symbol, quantity and price are required with --add')
           sys.exit(1)
 
+# set directory to users home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
 
+# check if files exist for stocks and cost info
 if os.path.exists('stocks.npy')==False:
      stocks={}
 else:
@@ -32,6 +35,7 @@ else:
 value = cost.copy()
 day = cost.copy()
 
+# function to add stock, quanity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
      url = "http://download.finance.yahoo.com/d/quotes.csv?s="+sym+"&f=ac"
      f = urllib.request.urlopen(url)
@@ -47,7 +51,8 @@ def inputtostocks(sym, qtn, price):
      np.save('stocks.npy', stocks) 
      cost.update({sym:paid})
      np.save('cost.npy', cost)
-     
+
+# function to remove a stock      
 def removestocks(sym):
      if sym in stocks:
           del stocks[sym]
@@ -57,6 +62,7 @@ def removestocks(sym):
           np.save('cost.npy', cost)
      return
 
+# function to get current price for a stock and print results
 def getcurrentprice(symbol):
      url = "http://download.finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=ac"
      f = urllib.request.urlopen(url)
@@ -76,7 +82,7 @@ def getcurrentprice(symbol):
           tcol=(Fore.GREEN)
      day[symbol]=(float(change)*(stocks[symbol]))
      value[symbol] =((stocks[symbol])*(s))
-     print('{:<4} {:<8} {:<16} {:<16} {:<16}'.format
+     print('{:<4} {:<8} {:<26} {:<16} {:<16}'.format
            (symbol,
             ' $'+str(s),
             col + str((data[1]).strip('"')) + Style.RESET_ALL,
@@ -84,23 +90,28 @@ def getcurrentprice(symbol):
             'gain $'+ tcol + str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
             '%'+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2)) + Style.RESET_ALL)
 
+# calls inputtostocks if --added option on command line
 if args.add:
      sym=str(args.add[0])
      qtn=int(args.add[1])
      price=float(args.add[2])
      inputtostocks(sym,qtn,price)
-     
+
+# call removestocks if --delete option on command line      
 if args.delete:
      sym=str(args.delete)
      removestocks(sym)
 
+# polite exit if no stocks in directory and --added not used
 if len(stocks)==0:
      print('Please input stocks with --add')
      sys.exit(1)
 
+# calls getcurrentprice for each stock in stocks dictory
 for key in sorted(stocks.keys()):
 	getcurrentprice(key)
 
+# formatting and printing summary
 gain=sum(day.values())
 
 if (gain)<0:
@@ -120,7 +131,7 @@ else:
 
 print()
 print('Day Change =  $'+pgain +
-     ', %' + str(round(((mkt/(mkt-gain)/100)),2)))
+     ', %' + str(round((100*(gain/mkt)),4)))
 print(Style.RESET_ALL)
 print('Totals: Cost $' + str(cst) +
        ' Value $' + str(round(mkt,2)) +
