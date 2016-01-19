@@ -69,7 +69,11 @@ def getcurrentprice(symbol):
      r = f.read()
      r = (r.decode("utf-8").strip())
      data=re.sub(r'\s', '',r).split(',')
+     if (data[0])=='N/A':
+          print ('Could not get price for ' +(symbol))
+          return
      s=float(data[0])
+     test=(data[0])
      change=((data[1][2:7]).strip('-'))
      if (data[1][1])=='-':
           change=float('-'+change)
@@ -90,7 +94,39 @@ def getcurrentprice(symbol):
             'gain $'+ tcol + str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
             '%'+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2)) + Style.RESET_ALL)
 
-# calls inputtostocks if --added option on command line
+# get latest change in Dow Jones Index
+def getdow():
+     url = "http://download.finance.yahoo.com/d/quotes.csv?s=DIA&f=ac"
+     f = urllib.request.urlopen(url)
+     r = f.read()
+     r = (r.decode("utf-8").strip())
+     data=re.sub(r'\s', '',r).split(',')
+#     s=(float(data[0])*100)
+     change=((data[1][2:7]).strip('-'))
+     if (data[1][1])=='-':
+          change=float('-'+change)
+          col=(Fore.RED)
+     else:
+          col=(Fore.GREEN)
+     print('DOW   ', col + str((data[1]).strip('"'))+ Style.RESET_ALL)
+
+# get latest change in Nasdaq Index
+def getnasdaq():
+     url = "http://download.finance.yahoo.com/d/quotes.csv?s=^IXIC&f=ac"
+     f = urllib.request.urlopen(url)
+     r = f.read()
+     r = (r.decode("utf-8").strip())
+     data=re.sub(r'\s', '',r).split(',')
+#     s=float(data[0])
+     change=((data[1][2:7]).strip('-'))
+     if (data[1][1])=='-':
+          change=float('-'+change)
+          col=(Fore.RED)
+     else:
+          col=(Fore.GREEN)
+     print('Nasdaq',col + str((data[1]).strip('"'))+ Style.RESET_ALL)
+
+# call inputtostocks if --added option on command line
 if args.add:
      sym=str(args.add[0])
      qtn=int(args.add[1])
@@ -107,7 +143,7 @@ if len(stocks)==0:
      print('Please input stocks with --add')
      sys.exit(1)
 
-# calls getcurrentprice for each stock in stocks dictory
+# call getcurrentprice for each stock in stocks dictory
 for key in sorted(stocks.keys()):
 	getcurrentprice(key)
 
@@ -122,18 +158,19 @@ else:
 mkt=sum(value.values())
 cst=sum(cost.values())
 tgain=(round((mkt-cst),2))
+print()
+getdow()
+getnasdaq()
 
 if (tgain)<0:
      ptgain=(Fore.RED + str(tgain))
 else:
      ptgain=(Fore.GREEN + str(tgain))
      
-
 print()
-print('Day Change =  $'+pgain +
-     ', %' + str(round((100*(gain/mkt)),4)))
-print(Style.RESET_ALL)
-print('Totals: Cost $' + str(cst) +
-       ' Value $' + str(round(mkt,2)) +
-       ' Gain $' + ptgain +
-       ', %' + str(round((100*(mkt-cst)/cst),2)))
+print('Day Gain =   $'+pgain +
+     ',  %' + str(round((100*(gain/mkt)),4))+ Style.RESET_ALL)
+print('Total Gain = $'+ptgain +
+       ', %' + str(round((100*(mkt-cst)/cst),2))+ Style.RESET_ALL)
+print('Cost $' + str(cst) +
+       ' Current Value $' + str(round(mkt,2)))
