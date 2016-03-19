@@ -13,6 +13,7 @@ init()
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("--delete", help="delete a symbol")
+parser.add_argument("--portfolio", help="choose a portfolio")
 args = parser.parse_args()
 
 if args.add:
@@ -20,8 +21,14 @@ if args.add:
           print('symbol, quantity and price are required with --add')
           sys.exit(1)
 
-# set directory to users home (should work for Linux, Mac and Windows)
+# set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
+
+if args.portfolio:
+     portfolio=str("." + (args.portfolio))
+     if os.path.exists(portfolio)==False:
+          os.mkdir(portfolio) 
+     os.chdir(os.path.expanduser(portfolio))
 
 # check if files exist for stocks and cost info
 if os.path.exists('stocks.npy')==False:
