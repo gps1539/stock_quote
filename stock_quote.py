@@ -63,9 +63,11 @@ def inputtostocks(sym, qtn, price):
 def removestocks(sym):
      if sym in stocks:
           del stocks[sym]
-          np.save('stocks.npy', stocks) 
+          np.save('stocks.npy', stocks)
      if sym in cost:
           del cost[sym]
+          del value[sym]
+          del day[sym]
           np.save('cost.npy', cost)
      return
 
@@ -78,6 +80,8 @@ def getcurrentprice(symbol):
      data=re.sub(r'\s', '',r).split(',')
      if (data[0])=='N/A':
           print ('Could not get price for ' +(symbol))
+          day[symbol]=0 
+          value[symbol]=(cost[symbol])
           return
      s=float(data[0])
      test=(data[0])
@@ -108,7 +112,6 @@ def getdow():
      r = f.read()
      r = (r.decode("utf-8").strip())
      data=re.sub(r'\s', '',r).split(',')
-#     s=(float(data[0])*100)
      change=((data[1][2:7]).strip('-'))
      if (data[1][1])=='-':
           change=float('-'+change)
@@ -124,7 +127,6 @@ def getnasdaq():
      r = f.read()
      r = (r.decode("utf-8").strip())
      data=re.sub(r'\s', '',r).split(',')
-#     s=float(data[0])
      change=((data[1][2:7]).strip('-'))
      if (data[1][1])=='-':
           change=float('-'+change)
@@ -145,12 +147,12 @@ if args.delete:
      sym=str(args.delete)
      removestocks(sym)
 
-# polite exit if no stocks in directory and --added not used
+# polite exit if no stocks in dictionary and --added not used
 if len(stocks)==0:
      print('Please input stocks with --add')
      sys.exit(1)
 
-# call getcurrentprice for each stock in stocks dictory
+# call getcurrentprice for each stock in stocks dictionary
 for key in sorted(stocks.keys()):
 	getcurrentprice(key)
 
