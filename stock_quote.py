@@ -72,7 +72,7 @@ def removestocks(sym):
      return
 
 # function to get current price for a stock and print results
-def getcurrentprice(symbol):
+def getyahooprice(symbol):
      url = "http://download.finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=ac"
      f = urllib.request.urlopen(url)
      r = f.read()
@@ -97,43 +97,57 @@ def getcurrentprice(symbol):
           tcol=(Fore.GREEN)
      day[symbol]=(float(change)*(stocks[symbol]))
      value[symbol] =((stocks[symbol])*(s))
-     print('{:<4} {:<8} {:<26} {:<16} {:<16}'.format
+     print('{:<10} {:<10} {:<27} {:<17} {:<20}'.format
            (symbol,
             ' $'+str(s),
             col + str((data[1]).strip('"')) + Style.RESET_ALL,
             'value $'+ str(round((stocks[symbol])*(s),2)),
             'gain $'+ tcol + str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
-            '%'+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2)) + Style.RESET_ALL)
+            str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 
-# get latest change in Dow Jones Index
-def getdow():
-     url = "http://download.finance.yahoo.com/d/quotes.csv?s=DIA&f=ac"
+def getgoogleprice(symbol):
+     url = "http://finance.google.com/finance/info?client=ig&q="+symbol
      f = urllib.request.urlopen(url)
      r = f.read()
      r = (r.decode("utf-8").strip())
-     data=re.sub(r'\s', '',r).split(',')
-     change=((data[1][2:7]).strip('-'))
-     if (data[1][1])=='-':
-          change=float('-'+change)
+     r = re.sub(r'\s', '',r).split(',')
+     s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
+     if (re.sub(r'[a-z,:,",_]', "", r[13])[0])=='-':
           col=(Fore.RED)
      else:
-          col=(Fore.GREEN)
-     print('DOW   ', col + str((data[1]).strip('"'))+ Style.RESET_ALL)
+          col=(Fore.GREEN) 
+     if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
+          tcol=(Fore.RED)
+     else:
+          tcol=(Fore.GREEN)    
+     change=re.sub(r'[a-z,:,",_]', "", r[11])
+     day[symbol]=(float(change)*(stocks[symbol]))
+     value[symbol] =((stocks[symbol])*(s))
+     ticker=re.sub(r'[a-z,:,",_]', "", r[1])
+     price=re.sub(r'[a-z,:,",_]', "", r[5])
+     percent=re.sub(r'[a-z,:,",_]', "", r[13])
+     print('{:<11}'.format (ticker) + ' $' + '{:<6}'.format (price),
+           col + ' ' + '{:<9}'.format (change)  + '{:<8}'.format (percent+'%') + Style.RESET_ALL, 
+           'value $' + '{:<8}'.format (str(round((stocks[symbol])*(s)))), 
+           'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
+	    + str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 
-# get latest change in Nasdaq Index
-def getnasdaq():
-     url = "http://download.finance.yahoo.com/d/quotes.csv?s=^IXIC&f=ac"
-     f = urllib.request.urlopen(url)
-     r = f.read()
-     r = (r.decode("utf-8").strip())
-     data=re.sub(r'\s', '',r).split(',')
-     change=((data[1][2:7]).strip('-'))
-     if (data[1][1])=='-':
-          change=float('-'+change)
+# get latest change in Index (Nasdaq, DJI)
+def getindex(symbol):
+     url = "http://finance.google.com/finance/info?client=ig&q=."+symbol
+     f1 = urllib.request.urlopen(url)
+     r1 = f1.read()
+     r1 = (r1.decode("utf-8").strip())
+     r1 = re.sub(r'\s', '',r1).split(',')
+     if (re.sub(r'[a-z,:,",_]', "", r1[13])[0])=='-':
           col=(Fore.RED)
      else:
           col=(Fore.GREEN)
-     print('Nasdaq',col + str((data[1]).strip('"'))+ Style.RESET_ALL)
+     symbol=re.sub(r'[a-z,:,",_]', "", r1[2])
+     price=re.sub(r'[a-z,:,",_]', "", r1[5])
+     change=re.sub(r'[a-z,:,",_]', "", r1[13])
+     percent=re.sub(r'[a-z,:,",_]', "", r1[15])
+     print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), col + ' ' + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
 
 # call inputtostocks if --added option on command line
 if args.add:
@@ -152,34 +166,39 @@ if len(stocks)==0:
      print('Please input stocks with --add')
      sys.exit(1)
 
-# call getcurrentprice for each stock in stocks dictionary
+# call yahoo getyahooprice for each stock in stocks dictionary
+#for key in sorted(stocks.keys()):
+#     getyahooprice(key)
+
+# call google getgoogleprice for each stock in stocks dictionary
 for key in sorted(stocks.keys()):
-	getcurrentprice(key)
+     getgoogleprice(key)
 
 # formatting and printing summary
 gain=sum(day.values())
 
 if (gain)<0:
-     pgain=(Fore.RED + str(round(gain,2)))
+     pgain=(Fore.RED + str(round(gain)))
 else:
-     pgain=(Fore.GREEN + str(round(gain,2)))
+     pgain=(Fore.GREEN + str(round(gain)))
 
 mkt=sum(value.values())
 cst=sum(cost.values())
-tgain=(round((mkt-cst),2))
+tgain=(round((mkt-cst)))
 print()
-getdow()
-getnasdaq()
+getindex("dji")
+getindex("ixic")
 
 if (tgain)<0:
-     ptgain=(Fore.RED + str(tgain))
+     ptgain=(Fore.RED  + str(tgain))
 else:
      ptgain=(Fore.GREEN + str(tgain))
      
 print()
-print('Day Gain =   $'+pgain +
-     ',  %' + str(round((100*(gain/mkt)),4))+ Style.RESET_ALL)
-print('Total Gain = $'+ptgain +
-       ', %' + str(round((100*(mkt-cst)/cst),2))+ Style.RESET_ALL)
-print('Cost $' + str(cst) +
-       ' Current Value $' + str(round(mkt,2)))
+print('{:<12}'.format ('Daily Gain $') + '{:<15}'.format (pgain) +
+     '{:<27}'.format (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL
+     + 'Total gain $'+ '{:<13}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%'
+     + Style.RESET_ALL)
+print()
+#print('Cost        $' + '{:<9}'.format (str(round(cst))) + 'Current  $' + '{:<17}'.format (str(round(mkt))) + 'Total gain $'+ '{:<16}'.format (ptgain) +
+#     str(round((100*(mkt-cst)/cst),2))+'%'+ Style.RESET_ALL)
