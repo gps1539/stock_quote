@@ -200,5 +200,3 @@ print('{:<12}'.format ('Daily Gain  $') + '{:<14}'.format (pgain) +
      + 'Total gain $'+ '{:<13}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%'
      + Style.RESET_ALL)
 print()
-#print('Cost        $' + '{:<9}'.format (str(round(cst))) + 'Current  $' + '{:<17}'.format (str(round(mkt))) + 'Total gain $'+ '{:<16}'.format (ptgain) +
-#     str(round((100*(mkt-cst)/cst),2))+'%'+ Style.RESET_ALL)
