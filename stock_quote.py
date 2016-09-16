@@ -147,7 +147,7 @@ def getindex(symbol):
      price=re.sub(r'[a-z,:,",_]', "", r1[5])
      change=re.sub(r'[a-z,:,",_]', "", r1[13])
      percent=re.sub(r'[a-z,:,",_]', "", r1[15])
-     print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), col + ' ' + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
+     print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), col + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
 
 # call inputtostocks if --added option on command line
 if args.add:
@@ -195,7 +195,7 @@ else:
      ptgain=(Fore.GREEN + str(tgain))
      
 print()
-print('{:<12}'.format ('Daily Gain $') + '{:<15}'.format (pgain) +
+print('{:<12}'.format ('Daily Gain  $') + '{:<14}'.format (pgain) +
      '{:<27}'.format (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL
      + 'Total gain $'+ '{:<13}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%'
      + Style.RESET_ALL)
