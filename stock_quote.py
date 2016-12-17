@@ -205,3 +205,4 @@ print('Total Value $' + (pmkt) + Style.RESET_ALL)
 print('Total gain  $' + '{:<14}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%' + Style.RESET_ALL)
 print('Daily Gain  $' + '{:<14}'.format (pgain) + (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL)
 print()
+
