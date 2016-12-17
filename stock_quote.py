@@ -189,14 +189,19 @@ print()
 getindex("dji")
 getindex("ixic")
 
+if (mkt)<(cst):
+     pmkt=(Fore.RED  + str(round(mkt)))
+else:
+     pmkt=(Fore.GREEN + str(round(mkt)))
+
 if (tgain)<0:
      ptgain=(Fore.RED  + str(tgain))
 else:
      ptgain=(Fore.GREEN + str(tgain))
-     
+
 print()
-print('{:<12}'.format ('Daily Gain  $') + '{:<14}'.format (pgain) +
-     '{:<27}'.format (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL
-     + 'Total gain $'+ '{:<13}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%'
-     + Style.RESET_ALL)
+print('Total Cost  $' + str(round(cst)))
+print('Total Value $' + (pmkt) + Style.RESET_ALL)
+print('Total gain  $' + '{:<14}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%' + Style.RESET_ALL)
+print('Daily Gain  $' + '{:<14}'.format (pgain) + (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL)
 print()
