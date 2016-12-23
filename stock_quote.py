@@ -44,20 +44,23 @@ day = cost.copy()
 
 # function to add stock, quanity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
-     url = "http://download.finance.yahoo.com/d/quotes.csv?s="+sym+"&f=ac"
+     url = "http://finance.google.com/finance/info?client=ig&q="+sym
+     try: urllib.request.urlopen(url)
+     except urllib.error.URLError as e:
+          print("stock not found")
+          sys.exit(1)     
      f = urllib.request.urlopen(url)
      r = f.read()
-     if len(r)<10:
-          print(sym + ' is not a valid stock symbol')
-          return
-     if (str(r)[2])=='N':
-          print(sym + ' is not a valid stock symbol')
-          return
+     r = (r.decode("utf-8").strip())
+     r = re.sub(r'\s', '',r).split(',')
+     s=float(re.sub(r'[a-z,:,",_]', "", r[5]))        
      paid=int(qtn*price)
      stocks.update({sym:qtn})
      np.save('stocks.npy', stocks) 
      cost.update({sym:paid})
      np.save('cost.npy', cost)
+     getgoogleprice(sym)
+     sys.exit(1)
 
 # function to remove a stock      
 def removestocks(sym):
@@ -70,40 +73,6 @@ def removestocks(sym):
           del day[sym]
           np.save('cost.npy', cost)
      return
-
-# function to get current price for a stock and print results
-def getyahooprice(symbol):
-     url = "http://download.finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=ac"
-     f = urllib.request.urlopen(url)
-     r = f.read()
-     r = (r.decode("utf-8").strip())
-     data=re.sub(r'\s', '',r).split(',')
-     if (data[0])=='N/A':
-          print ('Could not get price for ' +(symbol))
-          day[symbol]=0 
-          value[symbol]=(cost[symbol])
-          return
-     s=float(data[0])
-     test=(data[0])
-     change=((data[1][2:7]).strip('-'))
-     if (data[1][1])=='-':
-          change=float('-'+change)
-          col=(Fore.RED)
-     else:
-          col=(Fore.GREEN)
-     if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
-          tcol=(Fore.RED)
-     else:
-          tcol=(Fore.GREEN)
-     day[symbol]=(float(change)*(stocks[symbol]))
-     value[symbol] =((stocks[symbol])*(s))
-     print('{:<10} {:<10} {:<27} {:<17} {:<20}'.format
-           (symbol,
-            ' $'+str(s),
-            col + str((data[1]).strip('"')) + Style.RESET_ALL,
-            'value $'+ str(round((stocks[symbol])*(s),2)),
-            'gain $'+ tcol + str(round(((stocks[symbol])*(s)) -(cost[symbol]),2))),
-            str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 
 def getgoogleprice(symbol):
      url = "http://finance.google.com/finance/info?client=ig&q="+symbol
@@ -160,6 +129,7 @@ if args.add:
 if args.delete:
      sym=str(args.delete)
      removestocks(sym)
+     sys.exit(1)
 
 # polite exit if no stocks in dictionary and --added not used
 if len(stocks)==0:
