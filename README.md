@@ -8,6 +8,7 @@ usage: stock_quote [-h] [--add ADD [ADD ...]] [--delete DELETE]
 
 
 optional arguments:
+
   -h, --help            show this help message and exit
   --add ADD [ADD ...]   add a symbol, the quantity held and the price paid
   --delete DELETE       delete a symbol
