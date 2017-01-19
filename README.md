@@ -2,8 +2,10 @@
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
 stock_quote]$ ./stock_quote --help
+
 usage: stock_quote [-h] [--add ADD [ADD ...]] [--delete DELETE]
                    [--portfolio PORTFOLIO] [--influx INFLUX [INFLUX ...]]
+
 
 optional arguments:
   -h, --help            show this help message and exit
