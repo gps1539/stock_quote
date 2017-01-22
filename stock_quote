@@ -159,24 +159,25 @@ if args.influx:
 	series = []
 	if args.portfolio:
 		database=str(args.portfolio)		
-		print(database)
+#		print(database)
 	for symbol in sorted(stocks.keys()):
-		print(symbol)
 		url = "http://finance.google.com/finance/info?client=ig&q="+symbol
 		f = urllib.request.urlopen(url)
 		r = f.read()
 		r = (r.decode("utf-8").strip())
 		r = re.sub(r'\s', '',r).split(',')
 		s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
-		print(s)
-		value2 = (str(round((stocks[symbol])*(s))))
-		print(value2)
+		value = (str(round((stocks[symbol])*(s))))
+		change=re.sub(r'[a-z,:,",_]', "", r[11])
+		gain=(str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
 		pointValues = {
 			"time": datetime.datetime.today(),
         	        "measurement": metric,
         	        'fields':  {
 				'price': s,
-				'value': value2,
+				'change' : change,
+				'value': value,
+				'gain' : gain,
         	        },
         	        'tags': {
 				"Stock": symbol,
