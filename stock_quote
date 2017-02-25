@@ -162,7 +162,6 @@ if args.influx:
 	series = []
 	if args.portfolio:
 		database=str(args.portfolio)		
-#		print(database)
 	for symbol in sorted(stocks.keys()):
 		url = "http://finance.google.com/finance/info?client=ig&q="+symbol
 		f = urllib.request.urlopen(url)
