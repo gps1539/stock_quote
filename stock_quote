@@ -84,51 +84,69 @@ def removestocks(sym):
 
 def getgoogleprice(symbol):
 	url = "http://finance.google.com/finance/info?client=ig&q="+symbol
-	try: 
-		f = urllib.request.urlopen(url)
-		r = f.read()
-		r = (r.decode("utf-8").strip())
-		r = re.sub(r'\s', '',r).split(',')
-		s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
-		if (re.sub(r'[a-z,:,",_]', "", r[13])[0])=='-':
-			col=(Fore.RED)
-		else:
-			col=(Fore.GREEN) 
-		if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
-			tcol=(Fore.RED)
-		else:
-			tcol=(Fore.GREEN)    
-		change=re.sub(r'[a-z,:,",_]', "", r[11])
-		day[symbol]=(float(change)*(stocks[symbol]))
-		value[symbol] =((stocks[symbol])*(s))
-		price=re.sub(r'[a-z,:,",_]', "", r[5])
-		percent=re.sub(r'[a-z,:,",_]', "", r[13])
-		print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (price),
-	        col + ' ' + '{:<9}'.format (change)  + '{:<8}'.format (percent+'%') + Style.RESET_ALL, 
-	        'value $' + '{:<8}'.format (str(round((stocks[symbol])*(s)))), 
-	        'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
-		+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
-	except urllib.error.URLError as e:
-		print("http timeout")
-		return     
+	tries = 5
+	for i in range(tries):	
+		try: 
+			f = urllib.request.urlopen(url)
+			r = f.read()
+			r = (r.decode("utf-8").strip())
+			r = re.sub(r'\s', '',r).split(',')
+			s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
+			if (re.sub(r'[a-z,:,",_]', "", r[13])[0])=='-':
+				col=(Fore.RED)
+			else:
+				col=(Fore.GREEN) 
+			if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
+				tcol=(Fore.RED)
+			else:
+				tcol=(Fore.GREEN)    
+			change=re.sub(r'[a-z,:,",_]', "", r[11])
+			day[symbol]=(float(change)*(stocks[symbol]))
+			value[symbol] =((stocks[symbol])*(s))
+			price=re.sub(r'[a-z,:,",_]', "", r[5])
+			percent=re.sub(r'[a-z,:,",_]', "", r[13])
+			print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (price),
+		        col + ' ' + '{:<9}'.format (change)  + '{:<8}'.format (percent+'%') + Style.RESET_ALL, 
+		        'value $' + '{:<8}'.format (str(round((stocks[symbol])*(s)))), 
+		        'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
+			+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
+			return
+		except urllib.error.URLError as e:
+			print('retry ' + str(i+1))
+			if i < tries -1: 
+				continue
+			else:
+				print('http timeout getting ' + symbol)
+				return    
 
 # get latest change in Index (Nasdaq, DJI)
 def getindex(symbol):
 	url = "http://finance.google.com/finance/info?client=ig&q=."+symbol
-	f1 = urllib.request.urlopen(url)
-	r1 = f1.read()
-	r1 = (r1.decode("utf-8").strip())
-	r1 = re.sub(r'\s', '',r1).split(',')
-	if (re.sub(r'[a-z,:,",_]', "", r1[13])[0])=='-':
-		col=(Fore.RED)
-	else:
-		col=(Fore.GREEN)
-	symbol=re.sub(r'[a-z,:,",_]', "", r1[2])
-	price=re.sub(r'[a-z,:,",_]', "", r1[5])
-	change=re.sub(r'[a-z,:,",_]', "", r1[13])
-	percent=re.sub(r'[a-z,:,",_]', "", r1[15])
-	print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), 
-	col + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
+	tries = 5
+	for i in range(tries):
+		try:
+			f1 = urllib.request.urlopen(url)
+			r1 = f1.read()
+			r1 = (r1.decode("utf-8").strip())
+			r1 = re.sub(r'\s', '',r1).split(',')
+			if (re.sub(r'[a-z,:,",_]', "", r1[13])[0])=='-':
+				col=(Fore.RED)
+			else:
+				col=(Fore.GREEN)
+			symbol=re.sub(r'[a-z,:,",_]', "", r1[2])
+			price=re.sub(r'[a-z,:,",_]', "", r1[5])
+			change=re.sub(r'[a-z,:,",_]', "", r1[13])
+			percent=re.sub(r'[a-z,:,",_]', "", r1[15])
+			print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), 
+			col + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
+			return
+		except urllib.error.URLError as e:
+			print('retry ' + str(i+1))
+			if i < tries -1: 
+				continue
+			else:
+				print('http timeout getting ' + symbol)
+				return 
 
 # call inputtostocks if --added option on command line
 if args.add:
