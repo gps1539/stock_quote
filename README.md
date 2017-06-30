@@ -4,9 +4,8 @@ python script for getting stock quotes, calculating gains and losses and optiona
 stock_quote]$ ./stock_quote --help
 
 usage: stock_quote [-h] [--add ADD [ADD ...]] [--delete DELETE]
-                   [--portfolio PORTFOLIO] [--influx INFLUX [INFLUX ...]]
-
-
+                   [--influx INFLUX [INFLUX ...]] [--offline]
+                   [--portfolio PORTFOLIO]
 optional arguments:
 
   -h, --help            show this help message and exit
@@ -24,7 +23,7 @@ Files are created in a .stocks directory in the users home dorectory
 
 Allows multiple portfolios to be created and used. They are created as directories under .stocks in the user's home directory.
 
-Program will create 2 files in the portfolio directory to store portfolio info (cost.npy and stocks.npy)
+Program will create 3 files in the portfolio directory to store portfolio info (cost.npy, last.npy and stocks.npy)
 
 For continuous updates watch (bash) is useful:
 watch -n 5 --color stock_quote
