@@ -16,8 +16,9 @@ init()
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("--delete", help="delete a symbol")
-parser.add_argument("--portfolio", help="choose a portfolio")
 parser.add_argument("--influx", nargs='+', help="influx server, port, user and password")
+parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
+parser.add_argument("--portfolio", help="choose a portfolio")
 args = parser.parse_args()
 
 if args.add:
@@ -29,6 +30,7 @@ if args.influx:
 	if len(args.influx)!=4:
 		print('The influxdb server, port #, user and password are required with --influx')
 		sys.exit(1)
+
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
 
@@ -43,10 +45,17 @@ if os.path.exists('stocks.npy')==False:
 	stocks={}
 else:
 	stocks = np.load('stocks.npy').item()
+
 if os.path.exists('cost.npy')==False:
 	cost={}
 else:
 	cost = np.load('cost.npy').item()
+
+if os.path.exists('last.npy')==False:
+	last={}
+else:
+	last = np.load('last.npy').item()
+
 value = cost.copy()
 day = cost.copy()
 
@@ -84,61 +93,55 @@ def removestocks(sym):
 
 def getgoogleprice(symbol):
 	url = "http://finance.google.com/finance/info?client=ig&q="+symbol
-	tries = 5
-	for i in range(tries):	
-		try: 
-			f = urllib.request.urlopen(url)
-			r = f.read()
-			r = (r.decode("utf-8").strip())
-			r = re.sub(r'\s', '',r).split(',')
-			s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
-			if (re.sub(r'[a-z,:,",_]', "", r[13])[0])=='-':
-				col=(Fore.RED)
-			else:
-				col=(Fore.GREEN) 
-			if (((stocks[symbol])*(s)) -(cost[symbol])) <0:
-				tcol=(Fore.RED)
-			else:
-				tcol=(Fore.GREEN)    
-			change=re.sub(r'[a-z,:,",_]', "", r[11])
-			day[symbol]=(float(change)*(stocks[symbol]))
-			value[symbol] =((stocks[symbol])*(s))
-			price=re.sub(r'[a-z,:,",_]', "", r[5])
-			percent=re.sub(r'[a-z,:,",_]', "", r[13])
-			print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (price),
-		        col + ' ' + '{:<9}'.format (change)  + '{:<8}'.format (percent+'%') + Style.RESET_ALL, 
-		        'value $' + '{:<8}'.format (str(round((stocks[symbol])*(s)))), 
-		        'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
-			+ str(round(100*((((stocks[symbol])*(s)) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
-			return
-		except urllib.error.URLError as e:
-			print('retry ' + str(i+1))
-			if i < tries -1: 
-				continue
-			else:
-				print('http timeout getting ' + symbol)
-				return    
+	try: 
+		f = urllib.request.urlopen(url)
+		r = f.read()
+		r = (r.decode("utf-8").strip())
+		r = re.sub(r'\s', '',r).split(',')
+		s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
+		change=re.sub(r'[a-z,:,",_]', "", r[11])
+#		day[symbol]=(float(change)*(stocks[symbol]))
+		price=re.sub(r'[a-z,:,",_]', "", r[5])
+		percent=re.sub(r'[a-z,:,",_]', "", r[13])
+		last.update({symbol:[price,change,percent]})
+#		value[symbol] =((stocks[symbol])*(float(last[symbol][0])))
+		printstock(symbol)
+	except urllib.error.URLError as e:
+			print('http timeout getting ' + symbol + ', showing last value')
+			printstock(symbol)
+			return    
+
+def printstock(symbol):
+	if ((last[symbol][1])[0])=='-':
+		col=(Fore.RED)
+	else:
+		col=(Fore.GREEN)	
+	if (((stocks[symbol])*(float(last[symbol][0]))) -(cost[symbol])) <0:
+		tcol=(Fore.RED)
+	else:
+		tcol=(Fore.GREEN)   
+	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
+	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
+	print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
+        col + ' ' + '{:<9}'.format (last[symbol][1])  + '{:<8}'.format (last[symbol][2]+'%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
+	return
 
 # get latest change in Index (Nasdaq, DJI)
 def getindex(symbol):
 	url = "http://finance.google.com/finance/info?client=ig&q=."+symbol
-	tries = 5
+	tries = 1
 	for i in range(tries):
 		try:
 			f1 = urllib.request.urlopen(url)
 			r1 = f1.read()
 			r1 = (r1.decode("utf-8").strip())
 			r1 = re.sub(r'\s', '',r1).split(',')
-			if (re.sub(r'[a-z,:,",_]', "", r1[13])[0])=='-':
-				col=(Fore.RED)
-			else:
-				col=(Fore.GREEN)
 			symbol=re.sub(r'[a-z,:,",_]', "", r1[2])
 			price=re.sub(r'[a-z,:,",_]', "", r1[5])
 			change=re.sub(r'[a-z,:,",_]', "", r1[13])
 			percent=re.sub(r'[a-z,:,",_]', "", r1[15])
-			print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (price), 
-			col + '{:<8}'.format (change) + ' ' + (percent) + '% '+ Style.RESET_ALL)
+			last.update({symbol:[price,change,percent]})
 			return
 		except urllib.error.URLError as e:
 			print('retry ' + str(i+1))
@@ -147,6 +150,15 @@ def getindex(symbol):
 			else:
 				print('http timeout getting ' + symbol)
 				return 
+
+# print latest change in Index (Nasdaq, DJI)
+def printindex(symbol):
+	if ((last[symbol][1])[0])=='-':
+		col=(Fore.RED)
+	else:
+		col=(Fore.GREEN)
+	print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (float(last[symbol][0])), col + '{:<8}'.format (last[symbol][1]) + ' ' + (last[symbol][2]) + '% '+ Style.RESET_ALL)
+	return
 
 # call inputtostocks if --added option on command line
 if args.add:
@@ -165,10 +177,6 @@ if args.delete:
 if len(stocks)==0:
 	print('Please input stocks with --add')
 	sys.exit(1)
-
-# call yahoo getyahooprice for each stock in stocks dictionary
-#for key in sorted(stocks.keys()):
-#     getyahooprice(key)
 
 if args.influx:
 	server=str(args.influx[0])
@@ -210,8 +218,19 @@ if args.influx:
 	sys.exit(1)
 
 # call google getgoogleprice for each stock in stocks dictionary
-for key in sorted(stocks.keys()):
-	getgoogleprice(key)
+if args.offline:
+	print("Offline Mode")
+	for key in sorted(stocks.keys()):
+		printstock(key)
+	print()
+	
+else:
+	for key in sorted(stocks.keys()):
+		getgoogleprice(key)
+	getindex("dji")
+	getindex("ixic")
+	np.save('last.npy', last)
+
 
 # formatting and printing summary
 gain=sum(day.values())
@@ -225,8 +244,8 @@ mkt=sum(value.values())
 cst=sum(cost.values())
 tgain=(round((mkt-cst)))
 print()
-getindex("dji")
-getindex("ixic")
+printindex("INDEXDJX")
+printindex("INDEXNASDAQ")
 
 if (mkt)<(cst):
 	pmkt=(Fore.RED  + str(round(mkt)))
