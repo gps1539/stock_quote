@@ -12,11 +12,11 @@ optional arguments:
   -h, --help            show this help message and exit
   --add ADD [ADD ...]   add a symbol, the quantity held and the price paid
   --delete DELETE       delete a symbol
-  --portfolio PORTFOLIO
-                        choose a portfolio
   --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
-
+  --offline             displays last downloaded data
+  --portfolio PORTFOLIO
+                        choose a portfolio
   
 When adding the stock symbol, quantity and price are required
 
