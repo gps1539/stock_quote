@@ -19,6 +19,7 @@ parser.add_argument("--delete", help="delete a symbol")
 parser.add_argument("--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("--portfolio", help="choose a portfolio")
+parser.add_argument("--read", nargs='+', help="read transactions from a csv file (google finance)")
 args = parser.parse_args()
 
 if args.add:
@@ -29,6 +30,11 @@ if args.add:
 if args.influx:
 	if len(args.influx)!=4:
 		print('The influxdb server, port #, user and password are required with --influx')
+		sys.exit(1)
+
+if args.read:
+	if len(args.read)!=1:
+		print('a csv filename is required with --read')
 		sys.exit(1)
 
 # set directory to user's home (should work for Linux, Mac and Windows)
@@ -59,7 +65,7 @@ else:
 value = cost.copy()
 day = cost.copy()
 
-# function to add stock, quanity and price. checks if stock is valid on Yahoo
+# function to add stock, quantity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
 	url = "http://finance.google.com/finance/info?client=ig&q="+sym
 	try: urllib.request.urlopen(url)
@@ -77,7 +83,7 @@ def inputtostocks(sym, qtn, price):
 	cost.update({sym:paid})
 	np.save('cost.npy', cost)
 	getgoogleprice(sym)
-	sys.exit(1)
+#	sys.exit(1)
 
 # function to remove a stock      
 def removestocks(sym):
@@ -166,6 +172,31 @@ if args.add:
 	qtn=int(args.add[1])
 	price=float(args.add[2])
 	inputtostocks(sym,qtn,price)
+	sys.exit(1)
+
+# read csv file that was downloaded from google finance
+if args.read:
+	a=(args.read[0])
+	with open(a) as file:
+		next(file)
+		for line in file:
+			if (line[0]) == ",":
+				next(file)
+			else:
+				currentline = line.split(",")
+				if (currentline[1][0]) == '.':
+					next(file)
+				else:
+					if (currentline[1][-1]) == '"':
+						sym=str(currentline[2])
+						qtn=float(currentline[5])
+						price=(float(currentline[6]))/(float(currentline[5]))
+					else:
+						sym=str(currentline[1])
+						qtn=float(currentline[4])
+						price=(float(currentline[5]))/(float(currentline[4]))
+			inputtostocks(sym,qtn,price)
+		sys.exit(1)
 
 # call removestocks if --delete option on command line      
 if args.delete:
@@ -230,7 +261,6 @@ else:
 	getindex("dji")
 	getindex("ixic")
 	np.save('last.npy', last)
-
 
 # formatting and printing summary
 gain=sum(day.values())
