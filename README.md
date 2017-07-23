@@ -32,4 +32,4 @@ watch -n 5 --color stock_quote
 When using --influx, influxdb most be running on the target server and you must have a valid user and passwd
 Graphs can be created using grafana (and other tools) by using influxdb as a datasource.
 
-Supports exported csv from a google finance portfolio.   
+Supports importing transactions from an exported csv from a google finance portfolio.   
