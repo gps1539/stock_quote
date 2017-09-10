@@ -67,7 +67,7 @@ day = cost.copy()
 
 # function to add stock, quantity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
-	url = "http://finance.google.com/finance/info?client=ig&q="+sym
+	url = "http://finance.yahoo.com/d/quotes.csv?s="+sym+"&f=n"
 	try: urllib.request.urlopen(url)
 	except urllib.error.URLError as e:
 		print("stock not found")
@@ -75,14 +75,17 @@ def inputtostocks(sym, qtn, price):
 	f = urllib.request.urlopen(url)
 	r = f.read()
 	r = (r.decode("utf-8").strip())
-	r = re.sub(r'\s', '',r).split(',')
-	s=float(re.sub(r'[a-z,:,",_]', "", r[5]))        
+	r = (r.replace('"','').strip())
+	if (r) == 'N/A':
+		print("stock not found")
+		sys.exit(1)
+	print(r)
 	paid=int(qtn*price)
 	stocks.update({sym:qtn})
 	np.save('stocks.npy', stocks) 
 	cost.update({sym:paid})
 	np.save('cost.npy', cost)
-	getgoogleprice(sym)
+	getprice(sym)
 #	sys.exit(1)
 
 # function to remove a stock      
@@ -97,20 +100,19 @@ def removestocks(sym):
 		np.save('cost.npy', cost)
 	return
 
-def getgoogleprice(symbol):
-	url = "http://finance.google.com/finance/info?client=ig&q="+symbol
+def getprice(symbol):
+	url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
 	try: 
 		f = urllib.request.urlopen(url)
 		r = f.read()
 		r = (r.decode("utf-8").strip())
+		r = (r.replace('"','').strip())
 		r = re.sub(r'\s', '',r).split(',')
-		s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
-		change=re.sub(r'[a-z,:,",_]', "", r[11])
-#		day[symbol]=(float(change)*(stocks[symbol]))
-		price=re.sub(r'[a-z,:,",_]', "", r[5])
-		percent=re.sub(r'[a-z,:,",_]', "", r[13])
+#		print(r)
+		price=(r[0])
+		change=(r[1])
+		percent=(r[2])
 		last.update({symbol:[price,change,percent]})
-#		value[symbol] =((stocks[symbol])*(float(last[symbol][0])))
 		printstock(symbol)
 	except urllib.error.URLError as e:
 			print('http timeout getting ' + symbol + ', showing last value')
@@ -129,24 +131,28 @@ def printstock(symbol):
 	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
 	print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
-        col + ' ' + '{:<9}'.format (last[symbol][1])  + '{:<8}'.format (last[symbol][2]+'%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+        col + ' ' + '{:<9}'.format (last[symbol][1])  + '{:<8}'.format (last[symbol][2]) + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
 # get latest change in Index (Nasdaq, DJI)
 def getindex(symbol):
-	url = "http://finance.google.com/finance/info?client=ig&q=."+symbol
+	url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
 	tries = 1
 	for i in range(tries):
 		try:
 			f1 = urllib.request.urlopen(url)
 			r1 = f1.read()
 			r1 = (r1.decode("utf-8").strip())
+			r1 = (r1.replace('"','').strip())
 			r1 = re.sub(r'\s', '',r1).split(',')
-			symbol=re.sub(r'[a-z,:,",_]', "", r1[2])
-			price=re.sub(r'[a-z,:,",_]', "", r1[5])
-			change=re.sub(r'[a-z,:,",_]', "", r1[13])
-			percent=re.sub(r'[a-z,:,",_]', "", r1[15])
+#			print(r1)
+			if symbol == "DIA":
+				price=(float(r1[0])*100)
+			else:
+				price=(r1[0])
+			change=(r1[1])
+			percent=(r1[2])
 			last.update({symbol:[price,change,percent]})
 			return
 		except urllib.error.URLError as e:
@@ -163,7 +169,7 @@ def printindex(symbol):
 		col=(Fore.RED)
 	else:
 		col=(Fore.GREEN)
-	print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (float(last[symbol][0])), col + '{:<8}'.format (last[symbol][1]) + ' ' + (last[symbol][2]) + '% '+ Style.RESET_ALL)
+	print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
 	return
 
 # call inputtostocks if --added option on command line
@@ -220,14 +226,17 @@ if args.influx:
 	if args.portfolio:
 		database=str(args.portfolio)		
 	for symbol in sorted(stocks.keys()):
-		url = "http://finance.google.com/finance/info?client=ig&q="+symbol
+		url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
 		f = urllib.request.urlopen(url)
 		r = f.read()
 		r = (r.decode("utf-8").strip())
+		r = (r.replace('"','').strip())
 		r = re.sub(r'\s', '',r).split(',')
-		s=float(re.sub(r'[a-z,:,",_]', "", r[5]))
+		print(symbol)
+		print(r)
+		s=float(r[0])
+		change=(r[1])
 		value = (str(round((stocks[symbol])*(s))))
-		change=re.sub(r'[a-z,:,",_]', "", r[11])
 		gain=(str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
 		pointValues = {
 			"time": datetime.datetime.today(),
@@ -248,7 +257,7 @@ if args.influx:
 	client.write_points(series)
 	sys.exit(1)
 
-# call google getgoogleprice for each stock in stocks dictionary
+# print last values when offline
 if args.offline:
 	print("Offline Mode")
 	for key in sorted(stocks.keys()):
@@ -257,9 +266,10 @@ if args.offline:
 	
 else:
 	for key in sorted(stocks.keys()):
-		getgoogleprice(key)
-	getindex("dji")
-	getindex("ixic")
+		getprice(key)
+#	getprice("RHT")
+	getindex("DIA")
+	getindex("^IXIC")
 	np.save('last.npy', last)
 
 # formatting and printing summary
@@ -274,8 +284,8 @@ mkt=sum(value.values())
 cst=sum(cost.values())
 tgain=(round((mkt-cst)))
 print()
-printindex("INDEXDJX")
-printindex("INDEXNASDAQ")
+printindex("DIA")
+printindex("^IXIC")
 
 if (mkt)<(cst):
 	pmkt=(Fore.RED  + str(round(mkt)))
@@ -291,6 +301,6 @@ print()
 print('Total Cost  $' + str(round(cst)))
 print('Total Value $' + (pmkt) + Style.RESET_ALL)
 print('Total Gain  $' + '{:<14}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%' + Style.RESET_ALL)
-print('Daily Gain  $' + '{:<14}'.format (pgain) + (str(round((100*(gain/mkt)),2))+'%') + Style.RESET_ALL)
+print('Daily Gain  $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 print()
 
