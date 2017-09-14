@@ -20,6 +20,7 @@ parser.add_argument("--influx", nargs='+', help="influx server, port, user and p
 parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("--portfolio", help="choose a portfolio")
 parser.add_argument("--read", nargs='+', help="read transactions from a csv file (google finance)")
+parser.add_argument("--repeat", help="pull data every 30 seconds",action="store_true")
 args = parser.parse_args()
 
 if args.add:
@@ -109,14 +110,14 @@ def getprice(symbol):
 		r = (r.replace('"','').strip())
 		r = re.sub(r'\s', '',r).split(',')
 #		print(r)
-		price=(r[0])
+		price=(round(float(r[0]),2))
 		change=(r[1])
 		percent=(r[2])
 		last.update({symbol:[price,change,percent]})
-		printstock(symbol)
+#		printstock(symbol)
 	except urllib.error.URLError as e:
 			print('http timeout getting ' + symbol + ', showing last value')
-			printstock(symbol)
+#			printstock(symbol)
 			return    
 
 def printstock(symbol):
@@ -130,7 +131,7 @@ def printstock(symbol):
 		tcol=(Fore.GREEN)   
 	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
-	print('{:<11}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
+	print('{:<6}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
         col + ' ' + '{:<9}'.format (last[symbol][1])  + '{:<8}'.format (last[symbol][2]) + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
@@ -169,8 +170,29 @@ def printindex(symbol):
 		col=(Fore.RED)
 	else:
 		col=(Fore.GREEN)
-	print('{:<11}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
+	print('{:<6}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
 	return
+
+# formatting and printing summary
+def printtotal():
+	gain=sum(day.values())
+
+	if (gain)<0:
+		pgain=(Fore.RED + str(round(gain)))
+	else:
+		pgain=(Fore.GREEN + str(round(gain)))
+
+	mkt=sum(value.values())
+	cst=sum(cost.values())
+	tgain=(round((mkt-cst)))
+	pmkt=str(round(mkt))
+
+	if (tgain)<0:
+		ptgain=(Fore.RED  + str(tgain))
+	else:
+		ptgain=(Fore.GREEN + str(tgain))
+	print()
+	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
 # call inputtostocks if --added option on command line
 if args.add:
@@ -257,50 +279,40 @@ if args.influx:
 	client.write_points(series)
 	sys.exit(1)
 
-# print last values when offline
+# operation modes
 if args.offline:
 	print("Offline Mode")
 	for key in sorted(stocks.keys()):
 		printstock(key)
 	print()
 	
+elif args.repeat:
+	while True:
+		for key in sorted(stocks.keys()):
+			getprice(key)
+		os.system('clear')		
+		for key in sorted(stocks.keys()):
+			printstock(key)
+		getindex("DIA")
+		getindex("^IXIC")
+		np.save('last.npy', last)
+		print()
+		printindex("DIA")
+		printindex("^IXIC")	
+		printtotal()
+		time.sleep(30)
+
 else:
 	for key in sorted(stocks.keys()):
 		getprice(key)
 #	getprice("RHT")
+	os.system('clear')	
+	for key in sorted(stocks.keys()):
+		printstock(key)
 	getindex("DIA")
 	getindex("^IXIC")
 	np.save('last.npy', last)
-
-# formatting and printing summary
-gain=sum(day.values())
-
-if (gain)<0:
-	pgain=(Fore.RED + str(round(gain)))
-else:
-	pgain=(Fore.GREEN + str(round(gain)))
-
-mkt=sum(value.values())
-cst=sum(cost.values())
-tgain=(round((mkt-cst)))
-print()
-printindex("DIA")
-printindex("^IXIC")
-
-if (mkt)<(cst):
-	pmkt=(Fore.RED  + str(round(mkt)))
-else:
-	pmkt=(Fore.GREEN + str(round(mkt)))
-
-if (tgain)<0:
-	ptgain=(Fore.RED  + str(tgain))
-else:
-	ptgain=(Fore.GREEN + str(tgain))
-
-print()
-print('Total Cost  $' + str(round(cst)))
-print('Total Value $' + (pmkt) + Style.RESET_ALL)
-print('Total Gain  $' + '{:<14}'.format (ptgain) + str(round((100*(mkt-cst)/cst),2))+'%' + Style.RESET_ALL)
-print('Daily Gain  $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
-print()
-
+	print()
+	printindex("DIA")
+	printindex("^IXIC")
+	printtotal()
