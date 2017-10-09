@@ -20,7 +20,7 @@ parser.add_argument("--influx", nargs='+', help="influx server, port, user and p
 parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("--portfolio", help="choose a portfolio")
 parser.add_argument("--read", nargs='+', help="read transactions from a csv file (google finance)")
-parser.add_argument("--repeat", help="pull data every 30 seconds",action="store_true")
+parser.add_argument("--repeat", nargs='+', help="pull data every N minutes")
 args = parser.parse_args()
 
 if args.add:
@@ -36,6 +36,11 @@ if args.influx:
 if args.read:
 	if len(args.read)!=1:
 		print('a csv filename is required with --read')
+		sys.exit(1)
+
+if args.repeat:
+	if len(args.repeat)!=1:
+		print('Number of Minutes is required with --repeat')
 		sys.exit(1)
 
 # set directory to user's home (should work for Linux, Mac and Windows)
@@ -287,6 +292,9 @@ if args.offline:
 	print()
 	
 elif args.repeat:
+	interval=(60*int(args.repeat[0]))
+#	print(interval)
+	print("fetching data ...")
 	while True:
 		for key in sorted(stocks.keys()):
 			getprice(key)
@@ -300,12 +308,13 @@ elif args.repeat:
 		printindex("DIA")
 		printindex("^IXIC")	
 		printtotal()
-		time.sleep(30)
+#		print(time.asctime( time.localtime(time.time()) ))
+		time.sleep(interval)
 
 else:
+	print("fetching data ...")
 	for key in sorted(stocks.keys()):
 		getprice(key)
-#	getprice("RHT")
 	os.system('clear')	
 	for key in sorted(stocks.keys()):
 		printstock(key)
