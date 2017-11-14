@@ -14,12 +14,16 @@ from multiprocessing.dummy import Pool
 init()
 
 # temp use fix apikey
-apikey = 'ZGBBQDKVVER434P3'
+#apikey = 'ZGBBQDKVVER434P3'
+
+# set directory to user's home (should work for Linux, Mac and Windows)
+os.chdir(os.path.expanduser("~"))
 
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
-parser.add_argument("--delete", help="delete a symbol")
+parser.add_argument("--delete", nargs='+', help="delete a symbol")
+parser.add_argument("--key", nargs='+', help="add an api key, see https://www.alphavantage.co/support/#api-key")
 parser.add_argument("--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("--portfolio", help="choose a portfolio")
@@ -30,6 +34,11 @@ args = parser.parse_args()
 if args.add:
 	if len(args.add)!=3:
 		print('symbol, quantity and price are required with --add')
+		sys.exit(1)
+
+if args.delete:
+	if len(args.delete)!=1:
+		print('a symbolis required with --delete')
 		sys.exit(1)
 
 if args.influx:
@@ -47,16 +56,36 @@ if args.repeat:
 		print('Number of Minutes is required with --repeat')
 		sys.exit(1)
 
-# set directory to user's home (should work for Linux, Mac and Windows)
-os.chdir(os.path.expanduser("~"))
-
 if args.portfolio:
 	portfolio=str("." + (args.portfolio))
 	if os.path.exists(portfolio)==False:
 		os.mkdir(portfolio) 
 	os.chdir(os.path.expanduser(portfolio))
 
+if args.key:
+	if len(args.key)!=1:
+		print('an api key is required with --key')
+		sys.exit(1)
+	else:
+		apikey=str(args.key[0])
+		print("Testing key " + apikey)
+		url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=1min&apikey="+apikey
+		u = urllib.request.urlopen(url)
+		k = u.read()
+		if len(k) > 1000:
+			print("passed")
+			np.save('key.npy', apikey)
+		else:
+			print("failed, please get a valid key from https://www.alphavantage.co/support/#api-key")
+		sys.exit(1)
+
 # check if files exist for stocks and cost info
+if os.path.exists('key.npy')==False:
+	print("Please add a valid key")
+	sys.exit(1)
+else:
+	apikey = np.load('key.npy').item()
+
 if os.path.exists('stocks.npy')==False:
 	stocks={}
 else:
@@ -79,7 +108,6 @@ index = ['DJI', 'IXIC']
 # function to add stock, quantity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
 	url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+sym+"&interval=1min&apikey="+apikey
-#	url = "http://finance.yahoo.com/d/quotes.csv?s="+sym+"&f=n"
 	try: urllib.request.urlopen(url)
 	except urllib.error.URLError as e:
 		print("stock not found")
@@ -114,35 +142,40 @@ def removestocks(sym):
 def getprice(symbol):
 
 	# get current price
-	priceurl = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+symbol+"&interval=1min&apikey="+apikey
-	p = urllib.request.urlopen(priceurl)
-	r = p.read()
-	while len(r) < 1000:
-		time.sleep(5)
+	try:
+		priceurl = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+symbol+"&interval=1min&apikey="+apikey
 		p = urllib.request.urlopen(priceurl)
 		r = p.read()
-	r = (r.decode("utf-8").strip())
-	price = r.split(",")[9]
-	price = float(price.split('"')[3])
+		while len(r) < 1000:
+			time.sleep(5)
+			p = urllib.request.urlopen(priceurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		price = r.split(",")[9]
+		price = round(float(price.split('"')[3]),2)
 
-	# last day's close
-	lasturl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+symbol+"&apikey="+apikey
-	y = urllib.request.urlopen(lasturl)
-	l = y.read()
-	while len(l) < 1000:
-		time.sleep(5)
+		# last day's close
+		lasturl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+symbol	+"&apikey="+apikey
 		y = urllib.request.urlopen(lasturl)
 		l = y.read()
-	l = (l.decode("utf-8").strip())
-	Last = l.split(",")[11]
-	Last = float(Last.split('"')[3])
+		while len(l) < 1000:
+			time.sleep(5)
+			y = urllib.request.urlopen(lasturl)
+			l = y.read()
+		l = (l.decode("utf-8").strip())
+		Last = l.split(",")[11]
+		Last = float(Last.split('"')[3])
 
-	# calculate change
-	change = (str(round(float(price)-float(Last),2)))
-	percent = (str(round(((float(price)/float(Last))-1)*100,2)))+'%'
+		# calculate change
+		change = (str(round(float(price)-float(Last),2)))
+		percent = (str(round(((float(price)/float(Last))-1)*100,2)))+'%'
 
-	# update key/values
-	last.update({symbol:[price,change,percent]})
+		# update key/values
+		last.update({symbol:[price,change,percent]})
+
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol + ', showing last value')
+		return
 
 def printstock(symbol):
 #	print((last[symbol][1])[0])
@@ -236,6 +269,7 @@ if len(stocks)==0:
 	sys.exit(1)
 
 if args.influx:
+# should be able to call getprice and then update influx
 	server=str(args.influx[0])
 	port=int(args.influx[1])
 	user=str(args.influx[2])
