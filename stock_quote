@@ -13,9 +13,6 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-# temp use fix apikey
-#apikey = 'ZGBBQDKVVER434P3'
-
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
 
@@ -178,7 +175,6 @@ def getprice(symbol):
 		return
 
 def printstock(symbol):
-#	print((last[symbol][1])[0])
 	if ((last[symbol][1])[0])=='-':
 		col=(Fore.RED)
 	else:
@@ -269,7 +265,6 @@ if len(stocks)==0:
 	sys.exit(1)
 
 if args.influx:
-# should be able to call getprice and then update influx
 	server=str(args.influx[0])
 	port=int(args.influx[1])
 	user=str(args.influx[2])
@@ -279,23 +274,24 @@ if args.influx:
 	series = []
 	if args.portfolio:
 		database=str(args.portfolio)		
-# does the line below need to sort?
+
+# Call getprice to update data
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+
 	for symbol in sorted(stocks.keys()):
-		url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
-		f = urllib.request.urlopen(url)
-		r = f.read()
-		r = (r.decode("utf-8").strip())
-		r = (r.replace('"','').strip())
-		r = re.sub(r'\s', '',r).split(',')
-		print(symbol)
-		print(r)
-		s=float(r[0])
-		change=(r[1])
-		value = (str(round((stocks[symbol])*(s))))
-		gain=(str(round(((stocks[symbol])*(s)) -(cost[symbol]))))
+#		print(symbol)
+		s=(float(last[symbol][0])) #current price
+#		print(s)
+		change=(float(last[symbol][1]))
+#		print(change)
+		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
+#		print(value)
+		gain=(round(value-(cost[symbol]),2))
+#		print(gain)
 		pointValues = {
 			"time": datetime.datetime.today(),
-        	        "measurement": metric,
+	       	        "measurement": metric,
         	        'fields':  {
 				'price': s,
 				'change' : change,
@@ -306,6 +302,7 @@ if args.influx:
 				"Stock": symbol,
         	        },
         	    }
+#		print(pointValues)
 		series.append(pointValues)
 	client = InfluxDBClient(server, port, user, password, database)
 	client.create_database(database)
