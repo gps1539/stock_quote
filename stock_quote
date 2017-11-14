@@ -13,6 +13,9 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
+# temp use fix apikey
+apikey = 'ZGBBQDKVVER434P3'
+
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
@@ -71,11 +74,12 @@ else:
 
 value = cost.copy()
 day = cost.copy()
-index = ['DIA', '^IXIC']
+index = ['DJI', 'IXIC']
 
 # function to add stock, quantity and price. checks if stock is valid on Yahoo
 def inputtostocks(sym, qtn, price):
-	url = "http://finance.yahoo.com/d/quotes.csv?s="+sym+"&f=n"
+	url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+sym+"&interval=1min&apikey="+apikey
+#	url = "http://finance.yahoo.com/d/quotes.csv?s="+sym+"&f=n"
 	try: urllib.request.urlopen(url)
 	except urllib.error.URLError as e:
 		print("stock not found")
@@ -87,14 +91,13 @@ def inputtostocks(sym, qtn, price):
 	if (r) == 'N/A':
 		print("stock not found")
 		sys.exit(1)
-	print(r)
 	paid=int(qtn*price)
 	stocks.update({sym:qtn})
 	np.save('stocks.npy', stocks) 
 	cost.update({sym:paid})
 	np.save('cost.npy', cost)
 	getprice(sym)
-#	sys.exit(1)
+	printstock(sym)
 
 # function to remove a stock      
 def removestocks(sym):
@@ -109,25 +112,40 @@ def removestocks(sym):
 	return
 
 def getprice(symbol):
-	url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
-	try: 
-		f = urllib.request.urlopen(url)
-		r = f.read()
-		r = (r.decode("utf-8").strip())
-		r = (r.replace('"','').strip())
-		r = re.sub(r'\s', '',r).split(',')
-#		print(r)
-		price=(round(float(r[0]),2))
-		change=(r[1])
-		percent=(r[2])
-		last.update({symbol:[price,change,percent]})
-#		printstock(symbol)
-	except urllib.error.URLError as e:
-			print('http timeout getting ' + symbol + ', showing last value')
-#			printstock(symbol)
-			return    
+
+	# get current price
+	priceurl = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+symbol+"&interval=1min&apikey="+apikey
+	p = urllib.request.urlopen(priceurl)
+	r = p.read()
+	while len(r) < 1000:
+		time.sleep(5)
+		p = urllib.request.urlopen(priceurl)
+		r = p.read()
+	r = (r.decode("utf-8").strip())
+	price = r.split(",")[9]
+	price = float(price.split('"')[3])
+
+	# last day's close
+	lasturl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+symbol+"&apikey="+apikey
+	y = urllib.request.urlopen(lasturl)
+	l = y.read()
+	while len(l) < 1000:
+		time.sleep(5)
+		y = urllib.request.urlopen(lasturl)
+		l = y.read()
+	l = (l.decode("utf-8").strip())
+	Last = l.split(",")[11]
+	Last = float(Last.split('"')[3])
+
+	# calculate change
+	change = (str(round(float(price)-float(Last),2)))
+	percent = (str(round(((float(price)/float(Last))-1)*100,2)))+'%'
+
+	# update key/values
+	last.update({symbol:[price,change,percent]})
 
 def printstock(symbol):
+#	print((last[symbol][1])[0])
 	if ((last[symbol][1])[0])=='-':
 		col=(Fore.RED)
 	else:
@@ -143,33 +161,6 @@ def printstock(symbol):
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
-# get latest change in Index (Nasdaq, DJI)
-def getindex(symbol):
-	url = "http://finance.yahoo.com/d/quotes.csv?s="+symbol+"&f=l1c1p2"
-	tries = 1
-	for i in range(tries):
-		try:
-			f1 = urllib.request.urlopen(url)
-			r1 = f1.read()
-			r1 = (r1.decode("utf-8").strip())
-			r1 = (r1.replace('"','').strip())
-			r1 = re.sub(r'\s', '',r1).split(',')
-#			print(r1)
-			if symbol == "DIA":
-				price=(float(r1[0])*100)
-			else:
-				price=(r1[0])
-			change=(r1[1])
-			percent=(r1[2])
-			last.update({symbol:[price,change,percent]})
-			return
-		except urllib.error.URLError as e:
-			print('retry ' + str(i+1))
-			if i < tries -1: 
-				continue
-			else:
-				print('http timeout getting ' + symbol)
-				return 
 
 # print latest change in Index (Nasdaq, DJI)
 def printindex(symbol):
@@ -316,15 +307,18 @@ elif args.repeat:
 
 else:
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
+#	for key in sorted(stocks.keys()):
+#		getprice(key)
 	pool = Pool(len(stocks))
 	pool.map(getprice, stocks.keys())
 	pool = Pool(len(index))
-	pool.map(getindex, index)
+	pool.map(getprice, index)
+#	pool.map(getindex, index)
 	os.system('clear')	
 	for key in sorted(stocks.keys()):
 		printstock(key)
 	np.save('last.npy', last)
 	print()
-	printindex("DIA")
-	printindex("^IXIC")
+	printindex("DJI")
+	printindex("IXIC")
 	printtotal()
