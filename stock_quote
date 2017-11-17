@@ -160,7 +160,7 @@ def getprice(symbol):
 			y = urllib.request.urlopen(lasturl)
 			l = y.read()
 		l = (l.decode("utf-8").strip())
-		Last = l.split(",")[11]
+		Last = l.split(",")[16]
 		Last = float(Last.split('"')[3])
 
 		# calculate change
