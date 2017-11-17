@@ -35,7 +35,7 @@ if args.add:
 
 if args.delete:
 	if len(args.delete)!=1:
-		print('a symbolis required with --delete')
+		print('a symbol is required with --delete')
 		sys.exit(1)
 
 if args.influx:
@@ -255,7 +255,7 @@ if args.read:
 
 # call removestocks if --delete option on command line      
 if args.delete:
-	sym=str(args.delete)
+	sym=str(args.delete[0])
 	removestocks(sym)
 	sys.exit(1)
 
