@@ -77,11 +77,11 @@ if args.portfolio:
 #		sys.exit(1)
 
 # check if files exist for stocks and cost info
-if os.path.exists('key.npy')==False:
-	print("Please add a valid key")
-	sys.exit(1)
-else:
-	apikey = np.load('key.npy').item()
+#if os.path.exists('key.npy')==False:
+#	print("Please add a valid key")
+#	sys.exit(1)
+#else:
+#	apikey = np.load('key.npy').item()
 
 if os.path.exists('stocks.npy')==False:
 	stocks={}
@@ -307,10 +307,7 @@ def online():
 
 if args.repeat:
 	interval=(60*int(args.repeat[0]))
-	count=0
 	while True:
-		print(count)
-		count+=1
 		if args.influx:
 			influx()
 		elif args.offline:
