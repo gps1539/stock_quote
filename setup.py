@@ -8,10 +8,11 @@ setup(
 	'influxdb',
 	'argparse',
   ],
-  version = '0.9.6.1',
+  version = '0.9.6.2',
   description = 'python script to get stock quotes and calculate gains and losses', 
   author = 'Graham Smith',
   author_email = 'gps1539@gmail.com',
+  python_requires='>=3.4',
   scripts = ['stock_quote/stock_quote'],
   license='GPL3',
   url = 'https://github.com/gps1539/stock_quote', # use the URL to the github repo

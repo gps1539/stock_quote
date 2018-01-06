@@ -20,7 +20,7 @@ os.chdir(os.path.expanduser("~"))
 parser = argparse.ArgumentParser()
 parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("--delete", nargs='+', help="delete a symbol")
-parser.add_argument("--key", nargs='+', help="add an api key, see https://www.alphavantage.co/support/#api-key")
+#parser.add_argument("--key", nargs='+', help="add an api key, see https://www.alphavantage.co/support/#api-key")
 parser.add_argument("--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("--portfolio", help="choose a portfolio")
@@ -59,22 +59,22 @@ if args.portfolio:
 		os.mkdir(portfolio) 
 	os.chdir(os.path.expanduser(portfolio))
 
-if args.key:
-	if len(args.key)!=1:
-		print('an api key is required with --key')
-		sys.exit(1)
-	else:
-		apikey=str(args.key[0])
-		print("Testing key " + apikey)
-		url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=1min&apikey="+apikey
-		u = urllib.request.urlopen(url)
-		k = u.read()
-		if len(k) > 1000:
-			print("passed")
-			np.save('key.npy', apikey)
-		else:
-			print("failed, please get a valid key from https://www.alphavantage.co/support/#api-key")
-		sys.exit(1)
+#if args.key:
+#	if len(args.key)!=1:
+#		print('an api key is required with --key')
+#		sys.exit(1)
+#	else:
+#		apikey=str(args.key[0])
+#		print("Testing key " + apikey)
+#		url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=1min&apikey="+apikey
+#		u = urllib.request.urlopen(url)
+#		k = u.read()
+#		if len(k) > 1000:
+#			print("passed")
+#			np.save('key.npy', apikey)
+#		else:
+#			print("failed, please get a valid key from https://www.alphavantage.co/support/#api-key")
+#		sys.exit(1)
 
 # check if files exist for stocks and cost info
 if os.path.exists('key.npy')==False:
@@ -103,26 +103,19 @@ day = cost.copy()
 index = ['DJI', 'IXIC']
 
 # function to add stock, quantity and price. checks if stock is valid on Yahoo
-def inputtostocks(sym, qtn, price):
-	url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+sym+"&interval=1min&apikey="+apikey
+def inputtostocks(symbol, qtn, price):
+	url = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
 	try: urllib.request.urlopen(url)
 	except urllib.error.URLError as e:
 		print("stock not found")
 		sys.exit(1)     
-	f = urllib.request.urlopen(url)
-	r = f.read()
-	r = (r.decode("utf-8").strip())
-	r = (r.replace('"','').strip())
-	if (r) == 'N/A':
-		print("stock not found")
-		sys.exit(1)
 	paid=int(qtn*price)
-	stocks.update({sym:qtn})
+	stocks.update({symbol:qtn})
 	np.save('stocks.npy', stocks) 
-	cost.update({sym:paid})
+	cost.update({symbol:paid})
 	np.save('cost.npy', cost)
-	getprice(sym)
-	printstock(sym)
+	getprice(symbol)
+	printstock(symbol)
 
 # function to remove a stock      
 def removestocks(sym):
@@ -140,34 +133,24 @@ def getprice(symbol):
 
 	# get current price
 	try:
-		priceurl = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="+symbol+"&interval=1min&apikey="+apikey
+		priceurl = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
 		p = urllib.request.urlopen(priceurl)
 		r = p.read()
-		while len(r) < 1000:
-			time.sleep(5)
+		while len(r) < 400:
+			time.sleep(1)
 			p = urllib.request.urlopen(priceurl)
 			r = p.read()
 		r = (r.decode("utf-8").strip())
-		price = r.split(",")[9]
-		price = round(float(price.split('"')[3]),2)
+		p = r.split('"iexRealtimePrice":')[1]
+		if (p.split(',')[0]) == 'null':
+			p = r.split('"latestPrice":')[1]
+		price = round(float(p.split(',')[0]),2)
+		prev = r.split('"previousClose":')[1]
+		prev = round(float(prev.split(',')[0]),2)
+		change = str(round(float(price-prev),2))
 
-		# last day's close
-		lasturl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+symbol	+"&apikey="+apikey
-		y = urllib.request.urlopen(lasturl)
-		l = y.read()
-		while len(l) < 1000:
-			time.sleep(5)
-			y = urllib.request.urlopen(lasturl)
-			l = y.read()
-		l = (l.decode("utf-8").strip())
-		Last = l.split(",")[16]
-		Last = float(Last.split('"')[3])
+		percent = (str(round(((float(price)/float(prev))-1)*100,2)))+'%'
 
-		# calculate change
-		change = (str(round(float(price)-float(Last),2)))
-		percent = (str(round(((float(price)/float(Last))-1)*100,2)))+'%'
-
-		# update key/values
 		last.update({symbol:[price,change,percent]})
 
 	except urllib.error.URLError as e:
@@ -223,10 +206,10 @@ def printtotal():
 
 # call inputtostocks if --added option on command line
 if args.add:
-	sym=str(args.add[0])
+	symbol=str(args.add[0])
 	qtn=int(args.add[1])
 	price=float(args.add[2])
-	inputtostocks(sym,qtn,price)
+	inputtostocks(symbol,qtn,price)
 	sys.exit(1)
 
 # read csv file that was downloaded from google finance
@@ -264,7 +247,9 @@ if len(stocks)==0:
 	print('Please input stocks with --add')
 	sys.exit(1)
 
-if args.influx:
+# operation modes
+
+def influx():
 	server=str(args.influx[0])
 	port=int(args.influx[1])
 	user=str(args.influx[2])
@@ -280,15 +265,10 @@ if args.influx:
 	pool.map(getprice, stocks.keys())
 
 	for symbol in sorted(stocks.keys()):
-#		print(symbol)
 		s=(float(last[symbol][0])) #current price
-#		print(s)
 		change=(float(last[symbol][1]))
-#		print(change)
 		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
-#		print(value)
 		gain=(round(value-(cost[symbol]),2))
-#		print(gain)
 		pointValues = {
 			"time": datetime.datetime.today(),
 	       	        "measurement": metric,
@@ -302,54 +282,48 @@ if args.influx:
 				"Stock": symbol,
         	        },
         	    }
-#		print(pointValues)
 		series.append(pointValues)
 	client = InfluxDBClient(server, port, user, password, database)
 	client.create_database(database)
 	client.write_points(series)
-	sys.exit(1)
+#	sys.exit(1)
 
-# operation modes
-if args.offline:
+def offline():
+	os.system('clear')
 	print("Offline Mode")
 	for key in sorted(stocks.keys()):
 		printstock(key)
-	print()
-	
-elif args.repeat:
-	interval=(60*int(args.repeat[0]))
-#	print(interval)
-	print("fetching data ...")
-	while True:
-		pool = Pool(len(stocks))
-		pool.map(getprice, stocks.keys())
-		pool = Pool(len(index))
-		pool.map(getindex, index)
-		os.system('clear')		
-		for key in sorted(stocks.keys()):
-			printstock(key)
-		np.save('last.npy', last)
-		print()
-		printindex("DIA")
-		printindex("^IXIC")	
-		printtotal()
-#		print(time.asctime( time.localtime(time.time()) ))
-		time.sleep(interval)
+	print()	
 
-else:
+def online():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
-#	for key in sorted(stocks.keys()):
-#		getprice(key)
 	pool = Pool(len(stocks))
 	pool.map(getprice, stocks.keys())
-	pool = Pool(len(index))
-	pool.map(getprice, index)
-#	pool.map(getindex, index)
 	os.system('clear')	
 	for key in sorted(stocks.keys()):
 		printstock(key)
 	np.save('last.npy', last)
-	print()
-	printindex("DJI")
-	printindex("IXIC")
 	printtotal()
+
+if args.repeat:
+	interval=(60*int(args.repeat[0]))
+	count=0
+	while True:
+		print(count)
+		count+=1
+		if args.influx:
+			influx()
+		elif args.offline:
+			offline()
+		else:
+			online()
+		time.sleep(interval)
+
+elif args.influx:
+	influx()
+
+elif args.offline:
+	offline()
+	
+else:
+	online()
