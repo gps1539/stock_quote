@@ -8,7 +8,7 @@ setup(
 	'influxdb',
 	'argparse',
   ],
-  version = '0.9.6.2',
+  version = '0.9.7.1',
   description = 'python script to get stock quotes and calculate gains and losses', 
   author = 'Graham Smith',
   author_email = 'gps1539@gmail.com',
