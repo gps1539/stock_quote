@@ -142,7 +142,7 @@ def getprice(symbol):
 			r = p.read()
 		r = (r.decode("utf-8").strip())
 		p = r.split('"iexRealtimePrice":')[1]
-		if (p.split(',')[0]) == 'null':
+		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
 		price = round(float(p.split(',')[0]),2)
 		prev = r.split('"previousClose":')[1]
