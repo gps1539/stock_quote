@@ -2,15 +2,16 @@
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
 usage: stock_quote [-h] [--add ADD [ADD ...]] [--delete DELETE [DELETE ...]]
-                   [--influx INFLUX [INFLUX ...]] [--offline]
+                   [--gain] [--influx INFLUX [INFLUX ...]] [--offline]
                    [--portfolio PORTFOLIO] [--read READ [READ ...]]
-                   [--repeat REPEAT [REPEAT ...]]
+                   [--repeat REPEAT [REPEAT ...]] [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
   --add ADD [ADD ...]   add a symbol, the quantity held and the price paid
   --delete DELETE [DELETE ...]
                         delete a symbol
+  --gain                display stocks by gainers and losers
   --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
   --offline             displays last downloaded data
@@ -20,6 +21,8 @@ optional arguments:
                         read transactions from a csv file (google finance)
   --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
+  --version             print the version and exit
+
   
 When adding the stock symbol, quantity and price are required
 
