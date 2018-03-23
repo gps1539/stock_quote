@@ -13,22 +13,22 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "0.9.8"
+version = "0.9.9"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
 
 # command line options and help
 parser = argparse.ArgumentParser()
-parser.add_argument("--add", nargs='+', help="add a symbol, the quantity held and the price paid")
-parser.add_argument("--delete", nargs='+', help="delete a symbol")
-parser.add_argument("--gain", help="display stocks by gainers and losers",action="store_true")
-parser.add_argument("--influx", nargs='+', help="influx server, port, user and password")
-parser.add_argument("--offline", help="displays last downloaded data",action="store_true")
-parser.add_argument("--portfolio", help="choose a portfolio")
-parser.add_argument("--read", nargs='+', help="read transactions from a csv file (google finance)")
-parser.add_argument("--repeat", nargs='+', help="pull data every N minutes")
-parser.add_argument("--version", help="print the version and exit",action="store_true")
+parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
+parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
+parser.add_argument("-g","--gain", help="display stocks by gainers and losers",action="store_true")
+parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
+parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
+parser.add_argument("-p","--portfolio", help="choose a portfolio")
+parser.add_argument("-R","--read", nargs='+', help="read transactions from a csv file (google finance)")
+parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
+parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
 args = parser.parse_args()
 
 if args.add:
@@ -321,9 +321,3 @@ elif args.gain:
 
 else:
 	online()
-
-#testing
-
-
-#for stock in sorted(last.items(), key=lambda x:float(x[1][2]), reverse=True):
-#	printstock(stock[0])
