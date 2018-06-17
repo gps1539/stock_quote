@@ -13,7 +13,7 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "0.9.9"
+version = "1.0.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -22,7 +22,8 @@ os.chdir(os.path.expanduser("~"))
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
-parser.add_argument("-g","--gain", help="display stocks by gainers and losers",action="store_true")
+parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
+parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
@@ -81,6 +82,7 @@ if os.path.exists('last.npy')==False:
 else:
 	last = np.load('last.npy').item()
 
+Gain={}
 value = cost.copy()
 day = cost.copy()
 #index = ['DJI', 'IXIC']
@@ -131,12 +133,10 @@ def getprice(symbol):
 		prev = r.split('"previousClose":')[1]
 		prev = float(prev.split(',')[0])
 		change = str(round(float(price-prev),2))
-
-#		percent = (str(round(((float(price)/float(prev))-1)*100,2)))+'%'
 		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
 		gain = (round(((float(price)/float(prev))-1)*100,2))
-
-		last.update({symbol:[price,change,percent,gain]})
+		totalgain = (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))))
+		last.update({symbol:[price,change,percent,gain,totalgain]})
 
 	except urllib.error.URLError as e:
 		print('http timeout getting ' + symbol + ', showing last value')
@@ -289,7 +289,18 @@ def online():
 	np.save('last.npy', last)
 	printtotal()
 
-def gain():
+def totalgain():
+	print("fetching data for " + (str(len(stocks))) + " stocks ...")
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+	os.system('clear')	
+	for stock in sorted(last.items(), key=lambda x:float(x[1][4]), reverse=True):
+		printstock(stock[0])	
+#	np.save('last.npy', last)
+#	print(Gain)
+	printtotal()
+
+def dailygain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
 	pool = Pool(len(stocks))
 	pool.map(getprice, stocks.keys())
@@ -316,8 +327,11 @@ elif args.influx:
 elif args.offline:
 	offline()
 	
-elif args.gain:
-	gain()
+elif args.dailygain:
+	dailygain()
+
+elif args.totalgain:
+	totalgain()
 
 else:
 	online()
