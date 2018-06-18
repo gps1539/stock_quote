@@ -1,28 +1,28 @@
 # stock_quote
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
-usage: stock_quote [-h] [--add ADD [ADD ...]] [--delete DELETE [DELETE ...]]
-                   [--gain] [--influx INFLUX [INFLUX ...]] [--offline]
-                   [--portfolio PORTFOLIO] [--read READ [READ ...]]
-                   [--repeat REPEAT [REPEAT ...]] [--version]
+usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
+                   [-i INFLUX [INFLUX ...]] [-o] [-p PORTFOLIO]
+                   [-R READ [READ ...]] [-r REPEAT [REPEAT ...]] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --add ADD [ADD ...]   add a symbol, the quantity held and the price paid
-  --delete DELETE [DELETE ...]
+  -a ADD [ADD ...], --add ADD [ADD ...]
+                        add a symbol, the quantity held and the price paid
+  -d DELETE [DELETE ...], --delete DELETE [DELETE ...]
                         delete a symbol
-  --gain                display stocks by gainers and losers
-  --influx INFLUX [INFLUX ...]
+  -g, --dailygain       display stocks by today's gainers and losers
+  -G, --totalgain       display stocks by total gainers and losers
+  -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
-  --offline             displays last downloaded data
-  --portfolio PORTFOLIO
+  -o, --offline         displays last downloaded data
+  -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
-  --read READ [READ ...]
+  -R READ [READ ...], --read READ [READ ...]
                         read transactions from a csv file (google finance)
-  --repeat REPEAT [REPEAT ...]
+  -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
-  --version             print the version and exit
-
+  -v, --version         print the version and exit
   
 When adding the stock symbol, quantity and price are required
 
