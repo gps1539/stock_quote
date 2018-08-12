@@ -13,7 +13,7 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.0.0"
+version = "1.0.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -87,7 +87,7 @@ value = cost.copy()
 day = cost.copy()
 #index = ['DJI', 'IXIC']
 
-# function to add stock, quantity and price. checks if stock is valid on Yahoo
+# function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price):
 	url = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
 	try: urllib.request.urlopen(url)
@@ -99,6 +99,8 @@ def inputtostocks(symbol, qtn, price):
 	np.save('stocks.npy', stocks) 
 	cost.update({symbol:paid})
 	np.save('cost.npy', cost)
+	last.update({symbol:[price,0,0,0,0]})
+	np.save('last.npy', last)
 	getprice(symbol)
 	printstock(symbol)
 
@@ -112,10 +114,12 @@ def removestocks(sym):
 		del value[sym]
 		del day[sym]
 		np.save('cost.npy', cost)
+	if sym in last:
+		del last[sym]
+		np.save('last.npy', last)
 	return
 
 def getprice(symbol):
-
 	# get current price
 	try:
 		priceurl = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
