@@ -13,7 +13,7 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.0.1"
+version = "1.1.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -27,6 +27,7 @@ parser.add_argument("-G","--totalgain", help="display stocks by total gainers an
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
+parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
 parser.add_argument("-R","--read", nargs='+', help="read transactions from a csv file (google finance)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
@@ -200,6 +201,58 @@ if args.add:
 	price=float(args.add[2])
 	inputtostocks(symbol,qtn,price)
 	sys.exit(1)
+
+if args.quote:
+	symbol=str(args.quote[0])
+	try:
+		priceurl = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
+		p = urllib.request.urlopen(priceurl)
+		r = p.read()
+		while len(r) < 400:
+			time.sleep(1)
+			p = urllib.request.urlopen(priceurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		p = r.split('"iexRealtimePrice":')[1]
+		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+			p = r.split('"latestPrice":')[1]
+		price = round(float(p.split(',')[0]),2)
+		prev = r.split('"previousClose":')[1]
+		prev = float(prev.split(',')[0])
+		pe = r.split('"peRatio":')[1]
+		pe = str(float(pe.split(',')[0]))
+		high = r.split('"high":')[1]
+		high = str(float(high.split(',')[0]))
+		low = r.split('"low":')[1]
+		low = str(float(low.split(',')[0]))
+		high52 = r.split('"week52High":')[1]
+		high52 = str(float(high52.split(',')[0]))
+		low52 = r.split('"week52Low":')[1]
+		low52 = str(float(low52.split(',')[0]))
+		volume = r.split('"latestVolume":')[1]
+		volume = str(int(volume.split(',')[0]))
+		name = r.split('"companyName":')[1]
+		name = str(name.split(',')[0])
+		change = str(round(float(price-prev),2))
+		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
+		if (change[0])=='-':
+			change=(Fore.RED + str(change))
+		else:
+			change=(Fore.GREEN + str(change))
+		print ('Symbol       : ' + (symbol) + ' : ' + (name))
+		print ('Price        : ' + (str(price)))
+		print ('Change       : ' + '{:<6}'.format (change) + ' ' + '{:<6}'.format (percent+'%') + Style.RESET_ALL)
+		print ('PE ratio     : ' + (pe))
+		print ('Daily high   : ' + (high))
+		print ('Daily low    : ' + (low))
+		print ('52 week high : ' + (high52))
+		print ('52 week low  : ' + (low52))
+		print ('Volume       : ' + (volume))
+		sys.exit(1)
+
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
 
 # read csv file that was downloaded from google finance
 if args.read:

@@ -3,7 +3,8 @@ python script for getting stock quotes, calculating gains and losses and optiona
 
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
                    [-i INFLUX [INFLUX ...]] [-o] [-p PORTFOLIO]
-                   [-R READ [READ ...]] [-r REPEAT [REPEAT ...]] [-v]
+                   [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
+                   [-r REPEAT [REPEAT ...]] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -18,6 +19,8 @@ optional arguments:
   -o, --offline         displays last downloaded data
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
+  -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
+                        add a symbol, gets quote for single stock
   -R READ [READ ...], --read READ [READ ...]
                         read transactions from a csv file (google finance)
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
