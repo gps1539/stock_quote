@@ -213,6 +213,7 @@ if args.quote:
 			p = urllib.request.urlopen(priceurl)
 			r = p.read()
 		r = (r.decode("utf-8").strip())
+		print(r)
 		p = r.split('"iexRealtimePrice":')[1]
 		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
@@ -220,7 +221,7 @@ if args.quote:
 		prev = r.split('"previousClose":')[1]
 		prev = float(prev.split(',')[0])
 		pe = r.split('"peRatio":')[1]
-		pe = str(float(pe.split(',')[0]))
+		pe = str(pe.split(',')[0])
 		high = r.split('"high":')[1]
 		high = str(float(high.split(',')[0]))
 		low = r.split('"low":')[1]
@@ -230,7 +231,7 @@ if args.quote:
 		low52 = r.split('"week52Low":')[1]
 		low52 = str(float(low52.split(',')[0]))
 		volume = r.split('"latestVolume":')[1]
-		volume = str(int(volume.split(',')[0]))
+		volume = str(volume.split(',')[0])
 		name = r.split('"companyName":')[1]
 		name = str(name.split(',')[0])
 		change = str(round(float(price-prev),2))
