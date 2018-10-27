@@ -17,6 +17,7 @@ optional arguments:
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
   -o, --offline         displays last downloaded data
+  -H, --holdings        displays cost, quanity and price paid
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]

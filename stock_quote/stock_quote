@@ -26,6 +26,7 @@ parser.add_argument("-g","--dailygain", help="display stocks by today's gainers 
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
+parser.add_argument("-H","--holdings", help="displays cost, quanity and price paid",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
 parser.add_argument("-R","--read", nargs='+', help="read transactions from a csv file (google finance)")
@@ -163,6 +164,10 @@ def printstock(symbol):
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
+def printholdings(symbol):
+	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
+	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
+	return
 
 # print latest change in Index (Nasdaq, DJI)
 def printindex(symbol):
@@ -213,7 +218,7 @@ if args.quote:
 			p = urllib.request.urlopen(priceurl)
 			r = p.read()
 		r = (r.decode("utf-8").strip())
-		print(r)
+#		print(r)
 		p = r.split('"iexRealtimePrice":')[1]
 		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
@@ -337,6 +342,13 @@ def offline():
 		printstock(key)
 	print()	
 
+def holding():
+	os.system('clear')
+	print("Holdings")
+	for key in sorted(stocks.keys()):
+		printholdings(key)
+	print()	
+
 def online():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
 	pool = Pool(len(stocks))
@@ -384,7 +396,10 @@ elif args.influx:
 
 elif args.offline:
 	offline()
-	
+
+elif args.holdings:
+	holding()	
+
 elif args.dailygain:
 	dailygain()
 
