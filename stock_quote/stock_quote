@@ -13,7 +13,7 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.1.0"
+version = "1.2.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
