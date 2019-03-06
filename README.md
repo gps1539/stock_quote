@@ -17,13 +17,13 @@ optional arguments:
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
   -o, --offline         displays last downloaded data
-  -H, --holdings        displays cost, quanity and price paid
+  -H, --holdings        displays cost, quantity and price paid
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
                         add a symbol, gets quote for single stock
   -R READ [READ ...], --read READ [READ ...]
-                        read transactions from a csv file (google finance)
+                        inport from a csv file (symbol,quantity,price)
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
   -v, --version         print the version and exit
@@ -36,4 +36,4 @@ Allows multiple portfolios to be created and used. They are created as directori
 
 When using --influx, influxdb most be running on the target server and you must have a valid user and passwd. Graphs can be created using grafana (and other tools) by using influxdb as a datasource.
 
---read supports importing transactions from an exported google finance portfolio csv file.
+--read imports transactions from a csv file with the following fields symbol,quantity,price.

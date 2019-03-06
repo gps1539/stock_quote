@@ -13,7 +13,7 @@ import datetime
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.2.0"
+version = "1.3.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -26,10 +26,10 @@ parser.add_argument("-g","--dailygain", help="display stocks by today's gainers 
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
-parser.add_argument("-H","--holdings", help="displays cost, quanity and price paid",action="store_true")
+parser.add_argument("-H","--holdings", help="displays cost, quantity and price paid",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
-parser.add_argument("-R","--read", nargs='+', help="read transactions from a csv file (google finance)")
+parser.add_argument("-R","--read", nargs='+', help="inport from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
 args = parser.parse_args()
@@ -274,13 +274,13 @@ if args.read:
 					next(file)
 				else:
 					if (currentline[1][-1]) == '"':
-						sym=str(currentline[2])
-						qtn=float(currentline[5])
-						price=(float(currentline[6]))/(float(currentline[5]))
-					else:
 						sym=str(currentline[1])
-						qtn=float(currentline[4])
-						price=(float(currentline[5]))/(float(currentline[4]))
+						qtn=float(currentline[2])
+						price=(float(currentline[3]))/(float(currentline[2]))
+					else:
+						sym=str(currentline[0])
+						qtn=float(currentline[1])
+						price=(float(currentline[2]))/(float(currentline[1]))
 			inputtostocks(sym,qtn,price)
 		sys.exit(1)
 
