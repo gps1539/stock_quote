@@ -1,6 +1,9 @@
-# stock_quote
+## stock_quote
+
+## Overview
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
+## Usage
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
                    [-H] [-i INFLUX [INFLUX ...]] [-n NEWS [NEWS ...]] [-o]
                    [-p PORTFOLIO] [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
@@ -30,12 +33,13 @@ optional arguments:
                         pull data every N minutes
   -v, --version         print the version and exit
   
+## How to use
 When adding the stock symbol, quantity and price are required
 
-Files are created in a .stocks or .<portfolio> directory in the users home directory
+Files are created in a .stocks or .portfolio directory in the users home directory
 
 Allows multiple portfolios to be created and used. They are created as directories under .stocks in the user's home directory. Program will create 3 files in each portfolio directory to store portfolio info (cost.npy, last.npy and stocks.npy)
 
 When using --influx, influxdb most be running on the target server and you must have a valid user and passwd. Graphs can be created using grafana (and other tools) by using influxdb as a datasource.
 
---read imports transactions from a csv file with the following fields symbol,quantity,price.
+--read imports transactions from a csv file with the following fields: symbol,quantity,price.
