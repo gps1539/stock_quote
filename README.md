@@ -2,8 +2,8 @@
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
-                   [-i INFLUX [INFLUX ...]] [-o] [-p PORTFOLIO]
-                   [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
+                   [-H] [-i INFLUX [INFLUX ...]] [-n NEWS [NEWS ...]] [-o]
+                   [-p PORTFOLIO] [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
                    [-r REPEAT [REPEAT ...]] [-v]
 
 optional arguments:
@@ -14,12 +14,12 @@ optional arguments:
                         delete a symbol
   -g, --dailygain       display stocks by today's gainers and losers
   -G, --totalgain       display stocks by total gainers and losers
+  -H, --holdings        displays cost, quantity and price paid
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
   -n NEWS [NEWS ...], --news NEWS [NEWS ...]
-                        opens a news page for a symbol in your browser
+                        opens news page(s) for symbols in your browser
   -o, --offline         displays last downloaded data
-  -H, --holdings        displays cost, quantity and price paid
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
@@ -32,7 +32,7 @@ optional arguments:
   
 When adding the stock symbol, quantity and price are required
 
-Files are created in a .stocks directory in the users home directory
+Files are created in a .stocks or .<portfolio> directory in the users home directory
 
 Allows multiple portfolios to be created and used. They are created as directories under .stocks in the user's home directory. Program will create 3 files in each portfolio directory to store portfolio info (cost.npy, last.npy and stocks.npy)
 

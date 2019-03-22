@@ -27,7 +27,7 @@ parser.add_argument("-g","--dailygain", help="display stocks by today's gainers 
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-H","--holdings", help="displays cost, quantity and price paid",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
-parser.add_argument("-n","--news", nargs='+', help="opens a news page for a symbol in your browser")
+parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
