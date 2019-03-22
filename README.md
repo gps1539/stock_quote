@@ -16,6 +16,8 @@ optional arguments:
   -G, --totalgain       display stocks by total gainers and losers
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
+  -n NEWS [NEWS ...], --news NEWS [NEWS ...]
+                        opens a news page for a symbol in your browser
   -o, --offline         displays last downloaded data
   -H, --holdings        displays cost, quantity and price paid
   -p PORTFOLIO, --portfolio PORTFOLIO
