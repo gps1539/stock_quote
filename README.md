@@ -4,11 +4,13 @@
 python script for getting stock quotes, calculating gains and losses and optionally recording to a time series database (influxdb).
 
 ## Usage
+```
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
                    [-H] [-i INFLUX [INFLUX ...]] [-n NEWS [NEWS ...]] [-o]
                    [-p PORTFOLIO] [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
                    [-r REPEAT [REPEAT ...]] [-v]
-
+```
+```
 optional arguments:
   -h, --help            show this help message and exit
   -a ADD [ADD ...], --add ADD [ADD ...]
@@ -32,6 +34,7 @@ optional arguments:
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
   -v, --version         print the version and exit
+```
   
 ## How to use
 When adding the stock symbol, quantity and price are required
