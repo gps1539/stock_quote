@@ -10,10 +10,11 @@ from colorama import init, Fore, Back, Style
 from influxdb import InfluxDBClient
 import time
 import datetime
+import webbrowser
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.3.0"
+version = "1.4.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -24,9 +25,10 @@ parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity he
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
-parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
-parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-H","--holdings", help="displays cost, quantity and price paid",action="store_true")
+parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
+parser.add_argument("-n","--news", nargs='+', help="opens a news page for a symbol in your browser")
+parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
 parser.add_argument("-R","--read", nargs='+', help="inport from a csv file (symbol,quantity,price)")
@@ -47,6 +49,15 @@ if args.delete:
 if args.influx:
 	if len(args.influx)!=4:
 		print('The influxdb server, port #, user and password are required with --influx')
+		sys.exit(1)
+
+if args.news:
+	if len(args.news)<1:
+		print('a symbol is required with --news')
+		sys.exit(1)
+	else:
+		for symbol in (args.news):
+			webbrowser.open('https://seekingalpha.com/symbol/'+symbol, new=2)
 		sys.exit(1)
 
 if args.read:
@@ -87,7 +98,6 @@ else:
 Gain={}
 value = cost.copy()
 day = cost.copy()
-#index = ['DJI', 'IXIC']
 
 # function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price):
@@ -164,6 +174,7 @@ def printstock(symbol):
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
+# print current holdings
 def printholdings(symbol):
 	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
 	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
@@ -366,8 +377,6 @@ def totalgain():
 	os.system('clear')	
 	for stock in sorted(last.items(), key=lambda x:float(x[1][4]), reverse=True):
 		printstock(stock[0])	
-#	np.save('last.npy', last)
-#	print(Gain)
 	printtotal()
 
 def dailygain():
