@@ -83,17 +83,17 @@ if args.version:
 if os.path.exists('stocks.npy')==False:
 	stocks={}
 else:
-	stocks = np.load('stocks.npy').item()
+	stocks = np.load('stocks.npy', allow_pickle=True).item()
 
 if os.path.exists('cost.npy')==False:
 	cost={}
 else:
-	cost = np.load('cost.npy').item()
+	cost = np.load('cost.npy', allow_pickle=True).item()
 
 if os.path.exists('last.npy')==False:
 	last={}
 else:
-	last = np.load('last.npy').item()
+	last = np.load('last.npy', allow_pickle=True).item()
 
 Gain={}
 value = cost.copy()
