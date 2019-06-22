@@ -1,16 +1,16 @@
 ## stock_quote
 
 ## Overview
-stock quote is a python script for getting stock quotes, news, calculating gains and losses and optionally recording to a time series database (influxdb).
+stock quote is a python script for getting stock quotes, news, calculating gains and losses and optionally recording to a time series database (influxdb). Usage now requires an account (free) from https://iexcloud.io
 
 ## Usage
 ```
-usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
-                   [-H] [-i INFLUX [INFLUX ...]] [-n NEWS [NEWS ...]] [-o]
-                   [-p PORTFOLIO] [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
+Usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
+                   [-H] [-i INFLUX [INFLUX ...]] [-k KEY [KEY ...]]
+                   [-n NEWS [NEWS ...]] [-o] [-p PORTFOLIO]
+                   [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
                    [-r REPEAT [REPEAT ...]] [-v]
-```
-```
+
 optional arguments:
   -h, --help            show this help message and exit
   -a ADD [ADD ...], --add ADD [ADD ...]
@@ -22,6 +22,8 @@ optional arguments:
   -H, --holdings        displays cost, quantity and price paid
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
+  -k KEY [KEY ...], --key KEY [KEY ...]
+                        add an api key, see https://iexcloud.io
   -n NEWS [NEWS ...], --news NEWS [NEWS ...]
                         opens news page(s) for symbols in your browser
   -o, --offline         displays last downloaded data
@@ -37,6 +39,8 @@ optional arguments:
 ```
   
 ## How to use
+A key is now required. Create an account at iexcloud.io, find your API tokens and enter the "Publishable" token using --key 
+ 
 When adding the stock symbol, quantity and price are required
 
 Allows multiple portfolios to be created and used. They are created as directories under user's home directory. Program will create 3 files in each portfolio directory to store portfolio info (cost.npy, last.npy and stocks.npy)

@@ -27,6 +27,7 @@ parser.add_argument("-g","--dailygain", help="display stocks by today's gainers 
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-H","--holdings", help="displays cost, quantity and price paid",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
+parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://iexcloud.io")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
@@ -80,6 +81,31 @@ if args.version:
         print('version ' + version)
         sys.exit(1)
 
+if args.key:
+	if len(args.key)!=1:
+		print('an api key is required with --key')
+		sys.exit(1)
+	else:
+		apikey=str(args.key[0])
+		print("Testing key " + apikey)
+		try:
+			url = "https://cloud.iexapis.com/stable/stock/aapl/quote?token="+apikey
+			u = urllib.request.urlopen(url)
+			k = u.read()
+			print(len(k))
+			if len(k) > 10:
+				print("passed")
+				np.save('key.npy', apikey)
+		except urllib.error.URLError:
+			print('failed, please get a valid key from https://iexcloud.io')
+			sys.exit(1)
+
+if os.path.exists('key.npy')==False:
+	print("Please add a valid key")
+	sys.exit(1)
+else:
+	key = np.load('key.npy', allow_pickle=True).item()
+
 if os.path.exists('stocks.npy')==False:
 	stocks={}
 else:
@@ -101,7 +127,7 @@ day = cost.copy()
 
 # function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price):
-	url = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
+	url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
 	try: urllib.request.urlopen(url)
 	except urllib.error.URLError as e:
 		print("stock not found")
@@ -134,7 +160,7 @@ def removestocks(sym):
 def getprice(symbol):
 	# get current price
 	try:
-		priceurl = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
+		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
 		p = urllib.request.urlopen(priceurl)
 		r = p.read()
 		while len(r) < 400:
@@ -221,7 +247,7 @@ if args.add:
 if args.quote:
 	symbol=str(args.quote[0])
 	try:
-		priceurl = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
+		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
 		p = urllib.request.urlopen(priceurl)
 		r = p.read()
 		while len(r) < 400:
@@ -229,7 +255,6 @@ if args.quote:
 			p = urllib.request.urlopen(priceurl)
 			r = p.read()
 		r = (r.decode("utf-8").strip())
-#		print(r)
 		p = r.split('"iexRealtimePrice":')[1]
 		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
