@@ -14,7 +14,7 @@ import webbrowser
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.4.1"
+version = "1.5.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
