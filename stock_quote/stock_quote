@@ -14,7 +14,7 @@ import webbrowser
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.5.0"
+version = "1.5.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -163,6 +163,7 @@ def getprice(symbol):
 		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
 		p = urllib.request.urlopen(priceurl)
 		r = p.read()
+#		print(r)
 		while len(r) < 400:
 			time.sleep(1)
 			p = urllib.request.urlopen(priceurl)
@@ -171,6 +172,11 @@ def getprice(symbol):
 		p = r.split('"iexRealtimePrice":')[1]
 		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
+			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+				p = r.split('"delayedPrice":')[1]
+				if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+					print('No price data for ' + symbol + ', showing last value')
+					return
 		price = round(float(p.split(',')[0]),2)
 		prev = r.split('"previousClose":')[1]
 		prev = float(prev.split(',')[0])
@@ -263,16 +269,19 @@ if args.quote:
 		prev = float(prev.split(',')[0])
 		pe = r.split('"peRatio":')[1]
 		pe = str(pe.split(',')[0])
-		high = r.split('"high":')[1]
-		high = str(float(high.split(',')[0]))
-		low = r.split('"low":')[1]
-		low = str(float(low.split(',')[0]))
+		bid = r.split('"iexBidPrice":')[1]
+		print(r)
+		bid = str(bid.split(',')[0])
+		ask = r.split('"iexAskPrice":')[1]
+		ask = str(ask.split(',')[0])
 		high52 = r.split('"week52High":')[1]
-		high52 = str(float(high52.split(',')[0]))
+		high52 = str(high52.split(',')[0])
 		low52 = r.split('"week52Low":')[1]
-		low52 = str(float(low52.split(',')[0]))
-		volume = r.split('"latestVolume":')[1]
+		low52 = str(low52.split(',')[0])
+		volume = r.split('"iexVolume":')[1]
 		volume = str(volume.split(',')[0])
+		cap = r.split('"marketCap":')[1]
+		cap = str(cap.split(',')[0])
 		name = r.split('"companyName":')[1]
 		name = str(name.split(',')[0])
 		change = str(round(float(price-prev),2))
@@ -285,11 +294,12 @@ if args.quote:
 		print ('Price        : ' + (str(price)))
 		print ('Change       : ' + '{:<6}'.format (change) + ' ' + '{:<6}'.format (percent+'%') + Style.RESET_ALL)
 		print ('PE ratio     : ' + (pe))
-		print ('Daily high   : ' + (high))
-		print ('Daily low    : ' + (low))
+		print ('Bid Price    : ' + (bid))
+		print ('Ask Price    : ' + (ask))
 		print ('52 week high : ' + (high52))
 		print ('52 week low  : ' + (low52))
 		print ('Volume       : ' + (volume))
+		print ('Market cap   : ' + (cap))
 		sys.exit(1)
 
 	except urllib.error.URLError as e:
