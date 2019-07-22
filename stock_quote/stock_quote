@@ -264,6 +264,8 @@ if args.quote:
 		p = r.split('"iexRealtimePrice":')[1]
 		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
 			p = r.split('"latestPrice":')[1]
+			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+				p = r.split('"previousClose":')[1]
 		price = round(float(p.split(',')[0]),2)
 		prev = r.split('"previousClose":')[1]
 		prev = float(prev.split(',')[0])
