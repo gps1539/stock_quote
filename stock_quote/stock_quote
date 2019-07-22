@@ -14,7 +14,7 @@ import webbrowser
 from multiprocessing.dummy import Pool
 init()
 
-version = "1.5.1"
+version = "1.5.2"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -272,7 +272,6 @@ if args.quote:
 		pe = r.split('"peRatio":')[1]
 		pe = str(pe.split(',')[0])
 		bid = r.split('"iexBidPrice":')[1]
-		print(r)
 		bid = str(bid.split(',')[0])
 		ask = r.split('"iexAskPrice":')[1]
 		ask = str(ask.split(',')[0])
