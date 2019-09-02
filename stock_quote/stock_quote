@@ -12,9 +12,15 @@ import time
 import datetime
 import webbrowser
 from multiprocessing.dummy import Pool
+from pygments import highlight
+from pygments.lexers import JsonLexer
+from pygments.formatters import TerminalFormatter
+import json
+import requests
+
 init()
 
-version = "1.5.2"
+version = "1.6.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -31,9 +37,10 @@ parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://i
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
-parser.add_argument("-q","--quote", nargs='+', help="add a symbol, gets quote for single stock")
+parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock")
 parser.add_argument("-R","--read", nargs='+', help="inport from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
+parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
 args = parser.parse_args()
 
@@ -253,12 +260,12 @@ if args.add:
 if args.quote:
 	symbol=str(args.quote[0])
 	try:
-		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
-		p = urllib.request.urlopen(priceurl)
+		quoteurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		p = urllib.request.urlopen(quoteurl)
 		r = p.read()
 		while len(r) < 400:
 			time.sleep(1)
-			p = urllib.request.urlopen(priceurl)
+			p = urllib.request.urlopen(quoteurl)
 			r = p.read()
 		r = (r.decode("utf-8").strip())
 		p = r.split('"iexRealtimePrice":')[1]
@@ -291,6 +298,7 @@ if args.quote:
 			change=(Fore.RED + str(change))
 		else:
 			change=(Fore.GREEN + str(change))
+		print ()
 		print ('Symbol       : ' + (symbol) + ' : ' + (name))
 		print ('Price        : ' + (str(price)))
 		print ('Change       : ' + '{:<6}'.format (change) + ' ' + '{:<6}'.format (percent+'%') + Style.RESET_ALL)
@@ -301,11 +309,62 @@ if args.quote:
 		print ('52 week low  : ' + (low52))
 		print ('Volume       : ' + (volume))
 		print ('Market cap   : ' + (cap))
-		sys.exit(1)
-
+		if not args.stats:
+			sys.exit(1)
 	except urllib.error.URLError as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
+
+if args.stats:
+	symbol=str(args.stats[0])
+	try:
+		statsurl = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+		p = urllib.request.urlopen(statsurl)
+		r = p.read()
+		while len(r) < 400:
+			time.sleep(1)
+			p = urllib.request.urlopen(priceurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		name = r.split('"companyName":')[1]
+		name = str(name.split(',')[0])
+		employees = r.split('"employees":')[1]
+		employees = str(employees.split(',')[0])
+		ttmEPS = r.split('"ttmEPS":')[1]
+		ttmEPS = str(ttmEPS.split(',')[0])
+		exDividendDate = r.split('"exDividendDate":')[1]
+		exDividendDate = str(exDividendDate.split('"')[1])
+		dividendYield = r.split('"dividendYield":')[1]
+		dividendYield = str(dividendYield.split(',')[0])
+		beta = r.split('"beta":')[1]
+		beta = str(beta.split('}')[0])
+		print ()
+		print ('Symbol       : ' + (symbol) + ' : ' + (name))	
+		print ('Employees    : ' + (employees))
+		print ('ttm EPS      : ' + (ttmEPS))
+		print ('Ex Dividend  : ' + (exDividendDate))
+		print ('Yield        : ' + (dividendYield))
+		print ('Beta         : ' + (beta))
+		sys.exit(1)
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
+
+#if args.stats:
+#	symbol=str(args.stats[0])
+#	try:
+#		statsurl = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+#		r = requests.get(statsurl)
+#		r.raise_for_status()
+#		stats = json.dumps(r.json(), indent=4)
+#		print(highlight(stats, JsonLexer(), TerminalFormatter()))
+#		sys.exit(1)
+#	except requests.exceptions.HTTPError as err:
+#		print(r)
+#		print('http timeout getting ' + symbol)
+#		sys.exit(1)
+#else:
+#	sys.exit(1)
 
 # read csv file that was downloaded from google finance
 if args.read:
@@ -452,4 +511,11 @@ elif args.totalgain:
 	totalgain()
 
 else:
+	print('Y')
 	online()
+
+
+# Notes for next features
+
+# Get stats like yield, employees, next div
+# https://cloud.iexapis.com/beta/stock/market/batch?symbols=HPE&types=stats&token='key'
