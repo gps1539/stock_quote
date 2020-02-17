@@ -3,7 +3,7 @@ import urllib.request
 import sys
 import os
 import re
-import getopt
+#import getopt
 import numpy as np
 import argparse
 from colorama import init, Fore, Back, Style
@@ -15,12 +15,14 @@ from multiprocessing.dummy import Pool
 from pygments import highlight
 from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
-import json
-import requests
+#import json
+#import requests
+import plotly.graph_objects as plot
+import pandas as pd
 
 init()
 
-version = "1.6.0"
+version = "1.7.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -28,6 +30,8 @@ os.chdir(os.path.expanduser("~"))
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
+parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for a symbol")
+parser.add_argument("-cy","--chart_year", nargs='+', help="display a 12m chart for a symbol")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
@@ -47,6 +51,16 @@ args = parser.parse_args()
 if args.add:
 	if len(args.add)!=3:
 		print('symbol, quantity and price are required with --add')
+		sys.exit(1)
+
+if args.chart_day:
+	if len(args.chart_day)!=1:
+		print('symbol is required with --chart_day')
+		sys.exit(1)
+
+if args.chart_year:
+	if len(args.chart_year)!=1:
+		print('symbol is required with --chart_year')
 		sys.exit(1)
 
 if args.delete:
@@ -249,6 +263,7 @@ def printtotal():
 	print()
 	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
+
 # call inputtostocks if --added option on command line
 if args.add:
 	symbol=str(args.add[0])
@@ -256,6 +271,51 @@ if args.add:
 	price=float(args.add[2])
 	inputtostocks(symbol,qtn,price)
 	sys.exit(1)
+
+if args.chart_year:
+	symbol=str(args.chart_year[0])
+	try:
+		charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/chart/1y?&format=csv&token="+key
+
+		# Load data
+		df = pd.read_csv(charturl)
+
+		# Create figure
+		fig = plot.Figure()
+
+		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close)))
+
+		# Set title
+		fig.update_layout(title_text=symbol+" price over time")
+
+		# Add range slider
+		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
+		fig.show()
+		sys.exit(1)
+	except:
+		print("Stock not found")
+		sys.exit(1)
+
+if args.chart_day:
+	symbol=str(args.chart_day[0])
+	try:
+
+		charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices?&format=csv&token="+key
+		# Load data
+		df = pd.read_csv(charturl)
+
+		# Create figure
+		fig = plot.Figure()
+
+		fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close)))
+
+		# Set title
+		fig.update_layout(title_text=symbol+" price over time")
+		fig.show()
+		sys.exit(1)
+	except:
+		print("Stock not found")
+		sys.exit(1)
 
 if args.quote:
 	symbol=str(args.quote[0])
@@ -349,22 +409,6 @@ if args.stats:
 	except urllib.error.URLError as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
-
-#if args.stats:
-#	symbol=str(args.stats[0])
-#	try:
-#		statsurl = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
-#		r = requests.get(statsurl)
-#		r.raise_for_status()
-#		stats = json.dumps(r.json(), indent=4)
-#		print(highlight(stats, JsonLexer(), TerminalFormatter()))
-#		sys.exit(1)
-#	except requests.exceptions.HTTPError as err:
-#		print(r)
-#		print('http timeout getting ' + symbol)
-#		sys.exit(1)
-#else:
-#	sys.exit(1)
 
 # read csv file that was downloaded from google finance
 if args.read:
@@ -511,11 +555,4 @@ elif args.totalgain:
 	totalgain()
 
 else:
-	print('Y')
 	online()
-
-
-# Notes for next features
-
-# Get stats like yield, employees, next div
-# https://cloud.iexapis.com/beta/stock/market/batch?symbols=HPE&types=stats&token='key'
