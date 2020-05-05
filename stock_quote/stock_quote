@@ -3,7 +3,8 @@ import urllib.request
 import sys
 import os
 import re
-#import getopt
+import json
+import requests
 import numpy as np
 import argparse
 from colorama import init, Fore, Back, Style
@@ -15,14 +16,13 @@ from multiprocessing.dummy import Pool
 from pygments import highlight
 from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
-#import json
-#import requests
 import plotly.graph_objects as plot
+import plotly.express as px
 import pandas as pd
 
 init()
 
-version = "1.7.1"
+version = "1.8.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -30,12 +30,16 @@ os.chdir(os.path.expanduser("~"))
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
+parser.add_argument("-c","--costs", help="displays cost, quantity and price paid",action="store_true")
+parser.add_argument("-com","--company", nargs='+', help="get the company details for a stock")
 parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for a symbol")
+parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
 parser.add_argument("-cy","--chart_year", nargs='+', help="display a 12m chart for a symbol")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
+parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
+parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
-parser.add_argument("-H","--holdings", help="displays cost, quantity and price paid",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://iexcloud.io")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
@@ -103,23 +107,18 @@ if args.version:
         sys.exit(1)
 
 if args.key:
-	if len(args.key)!=1:
-		print('an api key is required with --key')
+	apikey=str(args.key[0])
+	print("Testing key " + apikey)
+	url = "https://cloud.iexapis.com/stable/stock/aapl/quote?token="+apikey
+	response = (requests.get(url))
+	print(response)
+	if (response.status_code) == 200:
+		print("passed")
+		np.save('key.npy', apikey)
 		sys.exit(1)
-	else:
-		apikey=str(args.key[0])
-		print("Testing key " + apikey)
-		try:
-			url = "https://cloud.iexapis.com/stable/stock/aapl/quote?token="+apikey
-			u = urllib.request.urlopen(url)
-			k = u.read()
-			print(len(k))
-			if len(k) > 10:
-				print("passed")
-				np.save('key.npy', apikey)
-		except urllib.error.URLError:
-			print('failed, please get a valid key from https://iexcloud.io')
-			sys.exit(1)
+	else:		
+		print('failed, please get a valid key from https://iexcloud.io')
+		sys.exit(1)
 
 if os.path.exists('key.npy')==False:
 	print("Please add a valid key")
@@ -146,13 +145,31 @@ Gain={}
 value = cost.copy()
 day = cost.copy()
 
+# function to call url
+def callurl(url):
+	try:
+		r = requests.get(url)
+	except requests.exceptions.RequestException as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
+	if r.status_code == 404:
+		print(symbol + ' is unknown')
+		sys.exit(1)
+	r = json.dumps(r.json(), indent=4)
+	print(highlight(r, JsonLexer(), TerminalFormatter()))
+	sys.exit(1)
+
 # function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price):
 	url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
-	try: urllib.request.urlopen(url)
-	except urllib.error.URLError as e:
-		print("stock not found")
-		sys.exit(1)     
+	try:
+		r = requests.get(url)
+	except requests.exceptions.RequestException as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
+	if r.status_code == 404:
+		print(symbol + ' is unknown')
+		sys.exit(1)
 	paid=int(qtn*price)
 	stocks.update({symbol:qtn})
 	np.save('stocks.npy', stocks) 
@@ -178,37 +195,34 @@ def removestocks(sym):
 		np.save('last.npy', last)
 	return
 
+# get current price
 def getprice(symbol):
-	# get current price
 	try:
-		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
-		p = urllib.request.urlopen(priceurl)
-		r = p.read()
-#		print(r)
-		while len(r) < 400:
+		url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		r = requests.get(url)
+		if (r.status_code) != 200:
 			time.sleep(1)
-			p = urllib.request.urlopen(priceurl)
-			r = p.read()
-		r = (r.decode("utf-8").strip())
-		p = r.split('"iexRealtimePrice":')[1]
-		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
-			p = r.split('"latestPrice":')[1]
-			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
-				p = r.split('"delayedPrice":')[1]
-				if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
-					print('No price data for ' + symbol + ', showing last value')
+			r = requests.get(url)
+		r = json.dumps(r.json())
+		r = json.loads(r)
+		price = (r['iexRealtimePrice'])
+		if (price) == None or (price) == '0':
+			price = (r['latestPrice'])
+			if (price) == None or (price) == '0':
+				price = (r['delayedPrice'])
+				if (price) == None or (price) == '0':
 					return
-		price = round(float(p.split(',')[0]),2)
-		prev = r.split('"previousClose":')[1]
-		prev = float(prev.split(',')[0])
-		change = str(round(float(price-prev),2))
-		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
-		gain = (round(((float(price)/float(prev))-1)*100,2))
+		prev = (r['previousClose'])
+		change = str(round(r['change'],2))
+		percent = str(round(float(r['changePercent']*100),2))
+#		percent = str(round(r['changePercent'],2))
+		gain = str(round(((float(price)/float(prev))-1)*100,2))
+		price = str(round(price,2))
 		totalgain = (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))))
 		last.update({symbol:[price,change,percent,gain,totalgain]})
 
-	except urllib.error.URLError as e:
-		print('http timeout getting ' + symbol + ', showing last value')
+	except requests.exceptions.RequestException as e:
+		print('http timeout getting ' + symbol)
 		return
 
 def printstock(symbol):
@@ -227,13 +241,11 @@ def printstock(symbol):
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
-# print current holdings
-def printholdings(symbol):
+def printcosts(symbol):
 	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
 	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
 	return
 
-# print latest change in Index (Nasdaq, DJI)
 def printindex(symbol):
 	if ((last[symbol][1])[0])=='-':
 		col=(Fore.RED)
@@ -242,7 +254,6 @@ def printindex(symbol):
 	print('{:<6}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
 	return
 
-# formatting and printing summary
 def printtotal():
 	gain=sum(day.values())
 
@@ -263,8 +274,6 @@ def printtotal():
 	print()
 	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
-
-# call inputtostocks if --added option on command line
 if args.add:
 	symbol=str(args.add[0])
 	qtn=int(args.add[1])
@@ -282,11 +291,10 @@ if args.chart_year:
 
 		# Create figure
 		fig = plot.Figure()
-
 		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close)))
 
 		# Set title
-		fig.update_layout(title_text=symbol+" price over time")
+		fig.update_layout(template='simple_white',title_text=symbol+" price over time")
 
 		# Add range slider
 		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
@@ -299,116 +307,101 @@ if args.chart_year:
 if args.chart_day:
 	symbol=str(args.chart_day[0])
 	try:
-
 		charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices/chartIEXOnly?&format=csv&token="+key
 		# Load data
 		df = pd.read_csv(charturl)
 
 		# Create figure
 		fig = plot.Figure()
-
 		fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close)))
 
 		# Set title
-		fig.update_layout(title_text=symbol+" price over time")
+		fig.update_layout(template='simple_white', title_text=symbol+" price over time")
 		fig.show()
 		sys.exit(1)
 	except:
 		print("Stock not found")
 		sys.exit(1)
 
+if args.chart_holdings:
+	holdings = {}
+	for symbol in sorted(stocks.keys()):
+		value = ((last[symbol][0]) * (stocks[symbol]))
+		holdings.update({symbol:value})
+	df = pd.DataFrame(holdings.items(), columns = ['stock', 'value'])
+	total = str(round(sum(holdings.values()),2))
+	fig = px.pie(df, title='Current holdings $' + total, values='value', names='stock', hole=0.1)
+	fig.update_traces(textposition='inside', textinfo='percent+label')
+	fig.show()
+	sys.exit(1)
+
 if args.quote:
 	symbol=str(args.quote[0])
 	try:
-		quoteurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
-		p = urllib.request.urlopen(quoteurl)
-		r = p.read()
-		while len(r) < 400:
-			time.sleep(1)
-			p = urllib.request.urlopen(quoteurl)
-			r = p.read()
-		r = (r.decode("utf-8").strip())
-		p = r.split('"iexRealtimePrice":')[1]
-		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
-			p = r.split('"latestPrice":')[1]
-			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
-				p = r.split('"previousClose":')[1]
-		price = round(float(p.split(',')[0]),2)
-		prev = r.split('"previousClose":')[1]
-		prev = float(prev.split(',')[0])
-		pe = r.split('"peRatio":')[1]
-		pe = str(pe.split(',')[0])
-		bid = r.split('"iexBidPrice":')[1]
-		bid = str(bid.split(',')[0])
-		ask = r.split('"iexAskPrice":')[1]
-		ask = str(ask.split(',')[0])
-		high52 = r.split('"week52High":')[1]
-		high52 = str(high52.split(',')[0])
-		low52 = r.split('"week52Low":')[1]
-		low52 = str(low52.split(',')[0])
-		volume = r.split('"iexVolume":')[1]
-		volume = str(volume.split(',')[0])
-		cap = r.split('"marketCap":')[1]
-		cap = str(cap.split(',')[0])
-		name = r.split('"companyName":')[1]
-		name = str(name.split(',')[0])
-		change = str(round(float(price-prev),2))
-		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
-		if (change[0])=='-':
-			change=(Fore.RED + str(change))
-		else:
-			change=(Fore.GREEN + str(change))
-		print ()
-		print ('Symbol       : ' + (symbol) + ' : ' + (name))
-		print ('Price        : ' + (str(price)))
-		print ('Change       : ' + '{:<6}'.format (change) + ' ' + '{:<6}'.format (percent+'%') + Style.RESET_ALL)
-		print ('PE ratio     : ' + (pe))
-		print ('Bid Price    : ' + (bid))
-		print ('Ask Price    : ' + (ask))
-		print ('52 week high : ' + (high52))
-		print ('52 week low  : ' + (low52))
-		print ('Volume       : ' + (volume))
-		print ('Market cap   : ' + (cap))
-		if not args.stats:
-			sys.exit(1)
-	except urllib.error.URLError as e:
+		url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		r = requests.get(url)
+	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
+		sys.exit(1)
+	if r.status_code == 404:
+		print(symbol + ' is unknown')
+		sys.exit(1)
+	r = json.dumps(r.json())
+	r = json.loads(r)
+	price = (r['iexRealtimePrice'])
+	if (price) == 'null' or (price) == '0':
+		price = (r['latestPrice'])
+		if (price) == 'null' or (price) == '0':
+			price = (r['previousClose'])
+	prev = float(r['previousClose'])
+	pe = str(r['peRatio'])
+	bid = str(r['iexBidPrice'])
+	ask = str(r['iexAskPrice'])
+	high52 = str(r['week52High'])
+	low52 = str(r['week52Low'])
+	volume = str(r['iexVolume'])
+	cap = str(r['marketCap'])
+	name = str(r['companyName'])
+	change = str(r['change'])
+
+	if (change[0])=='-':
+		change=(Fore.RED + str(change))
+	else:
+		change=(Fore.GREEN + str(change))
+
+	print ()
+	print ('Symbol       : ' + (symbol) + ' : ' + (name))
+	print ('Price        : ' + (str(price)))
+	print ('Change       : ' + (change) + Style.RESET_ALL)
+	print ('PE ratio     : ' + (pe))
+	print ('Bid Price    : ' + (bid))
+	print ('Ask Price    : ' + (ask))
+	print ('52 week high : ' + (high52))
+	print ('52 week low  : ' + (low52))
+	print ('Volume       : ' + (volume))
+	print ('Market cap   : ' + (cap))
+	if not args.stats:
 		sys.exit(1)
 
 if args.stats:
 	symbol=str(args.stats[0])
-	try:
-		statsurl = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
-		p = urllib.request.urlopen(statsurl)
-		r = p.read()
-		while len(r) < 400:
-			time.sleep(1)
-			p = urllib.request.urlopen(priceurl)
-			r = p.read()
-		r = (r.decode("utf-8").strip())
-		name = r.split('"companyName":')[1]
-		name = str(name.split(',')[0])
-		employees = r.split('"employees":')[1]
-		employees = str(employees.split(',')[0])
-		ttmEPS = r.split('"ttmEPS":')[1]
-		ttmEPS = str(ttmEPS.split(',')[0])
-		exDividendDate = r.split('"exDividendDate":')[1]
-		exDividendDate = str(exDividendDate.split('"')[1])
-		dividendYield = r.split('"dividendYield":')[1]
-		dividendYield = str(dividendYield.split(',')[0])
-		beta = r.split('"beta":')[1]
-		beta = str(beta.split('}')[0])
-		print ()
-		print ('Symbol       : ' + (symbol) + ' : ' + (name))	
-		print ('Employees    : ' + (employees))
-		print ('ttm EPS      : ' + (ttmEPS))
-		print ('Ex Dividend  : ' + (exDividendDate))
-		print ('Yield        : ' + (dividendYield))
-		print ('Beta         : ' + (beta))
-		sys.exit(1)
-	except urllib.error.URLError as e:
-		print('http timeout getting ' + symbol)
-		sys.exit(1)
+	url = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+	callurl(url)
+
+if args.company:
+	symbol=str(args.company[0])
+	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/company?token="+key
+	callurl(url)
+
+if args.dividends:
+	symbol=str(args.dividends[0])
+	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/dividends/next?token="+key
+	callurl(url)
+
+if args.earnings:
+	symbol=str(args.earnings[0])
+	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/earnings/last?token="+key
+	callurl(url)
 
 # read csv file that was downloaded from google finance
 if args.read:
@@ -492,11 +485,11 @@ def offline():
 		printstock(key)
 	print()	
 
-def holding():
+def costs():
 	os.system('clear')
-	print("Holdings")
+	print("costs")
 	for key in sorted(stocks.keys()):
-		printholdings(key)
+		printcosts(key)
 	print()	
 
 def online():
@@ -545,8 +538,8 @@ elif args.influx:
 elif args.offline:
 	offline()
 
-elif args.holdings:
-	holding()	
+elif args.costs:
+	costs()	
 
 elif args.dailygain:
 	dailygain()
