@@ -5,21 +5,41 @@ stock quote is a python script for getting stock quotes, news, calculating gains
 
 ## Usage
 ```
-Usage: stock_quote [-h] [-a ADD [ADD ...]] [-d DELETE [DELETE ...]] [-g] [-G]
-                   [-H] [-i INFLUX [INFLUX ...]] [-k KEY [KEY ...]]
+usage: stock_quote [-h] [-a ADD [ADD ...]] [-c]
+                   [-com COMPANY [COMPANY ...]]
+                   [-cd CHART_DAY [CHART_DAY ...]] [-ch]
+                   [-cy CHART_YEAR [CHART_YEAR ...]]
+                   [-d DELETE [DELETE ...]]
+                   [-div DIVIDENDS [DIVIDENDS ...]]
+                   [-e EARNINGS [EARNINGS ...]] [-g] [-G]
+                   [-i INFLUX [INFLUX ...]] [-k KEY [KEY ...]]
                    [-n NEWS [NEWS ...]] [-o] [-p PORTFOLIO]
                    [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
-                   [-r REPEAT [REPEAT ...]] [-v]
+                   [-r REPEAT [REPEAT ...]] [-s STATS [STATS ...]]
+                   [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
   -a ADD [ADD ...], --add ADD [ADD ...]
-                        add a symbol, the quantity held and the price paid
+                        add a symbol, the quantity held and the price
+                        paid
+  -c, --costs           displays cost, quantity and price paid
+  -com COMPANY [COMPANY ...], --company COMPANY [COMPANY ...]
+                        get the company details for a stock
+  -cd CHART_DAY [CHART_DAY ...], --chart_day CHART_DAY [CHART_DAY ...]
+                        display a intra day chart for a symbol
+  -ch, --chart_holdings
+                        display a pie chart of current holdings
+  -cy CHART_YEAR [CHART_YEAR ...], --chart_year CHART_YEAR [CHART_YEAR ...]
+                        display a 12m chart for a symbol
   -d DELETE [DELETE ...], --delete DELETE [DELETE ...]
                         delete a symbol
+  -div DIVIDENDS [DIVIDENDS ...], --dividends DIVIDENDS [DIVIDENDS ...]
+                        get the next dividend data for a stock
+  -e EARNINGS [EARNINGS ...], --earnings EARNINGS [EARNINGS ...]
+                        get earnings actual v estimate for a stock
   -g, --dailygain       display stocks by today's gainers and losers
   -G, --totalgain       display stocks by total gainers and losers
-  -H, --holdings        displays cost, quantity and price paid
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
                         influx server, port, user and password
   -k KEY [KEY ...], --key KEY [KEY ...]
@@ -30,12 +50,15 @@ optional arguments:
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
-                        add a symbol, gets quote for single stock
+                        gets quote for single stock
   -R READ [READ ...], --read READ [READ ...]
                         inport from a csv file (symbol,quantity,price)
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
+  -s STATS [STATS ...], --stats STATS [STATS ...]
+                        gets stats for single stock
   -v, --version         print the version and exit
+
 ```
   
 ## How to use
