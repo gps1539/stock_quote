@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.0"
+version = "1.8.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -212,9 +212,14 @@ def getprice(symbol):
 				if (price) == None or (price) == '0':
 					return
 		prev = (r['previousClose'])
-		change = str(round(r['change'],2))
-		percent = str(round(float(r['changePercent']*100),2))
-#		percent = str(round(r['changePercent'],2))
+		if r['change'] == None :
+			change = '0'
+		else :
+			change = str(round(r['change'],2))
+		if r['changePercent'] == None :
+			percent = '0'
+		else :
+			percent = str(round(float(r['changePercent']*100),2))
 		gain = str(round(((float(price)/float(prev))-1)*100,2))
 		price = str(round(price,2))
 		totalgain = (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))))
@@ -225,7 +230,7 @@ def getprice(symbol):
 		return
 
 def printstock(symbol):
-	if ((last[symbol][1])[0])=='-':
+	if (str((last[symbol][1])[0]))=='-':
 		col=(Fore.RED)
 	else:
 		col=(Fore.GREEN)	
