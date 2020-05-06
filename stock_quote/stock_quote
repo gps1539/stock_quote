@@ -240,8 +240,8 @@ def printstock(symbol):
 		tcol=(Fore.GREEN)   
 	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
-	print('{:<6}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
-        col + ' ' + '{:<9}'.format (last[symbol][1]) + '{:<8}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+	print('{:<6}'.format (symbol) + ' $' + '{:<7}'.format (last[symbol][0]),
+        col + ' ' + '{:<6}'.format (last[symbol][1]) + '{:<8}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
