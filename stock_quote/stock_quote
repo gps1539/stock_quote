@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.1"
+version = "1.8.2"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -205,11 +205,11 @@ def getprice(symbol):
 		r = json.dumps(r.json())
 		r = json.loads(r)
 		price = (r['iexRealtimePrice'])
-		if (price) == None or (price) == '0':
+		if (price) == None or (price) == 0:
 			price = (r['latestPrice'])
-			if (price) == None or (price) == '0':
+			if (price) == None or (price) == 0:
 				price = (r['delayedPrice'])
-				if (price) == None or (price) == '0':
+				if (price) == None or (price) == 0:
 					return
 		prev = (r['previousClose'])
 		if r['change'] == None :
@@ -353,9 +353,9 @@ if args.quote:
 	r = json.dumps(r.json())
 	r = json.loads(r)
 	price = (r['iexRealtimePrice'])
-	if (price) == 'null' or (price) == '0':
+	if (price) == None or (price) == 0:
 		price = (r['latestPrice'])
-		if (price) == 'null' or (price) == '0':
+		if (price) == None or (price) == 0:
 			price = (r['previousClose'])
 	prev = float(r['previousClose'])
 	pe = str(r['peRatio'])
