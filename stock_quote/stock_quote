@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.2"
+version = "1.8.3"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -240,8 +240,8 @@ def printstock(symbol):
 		tcol=(Fore.GREEN)   
 	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
-	print('{:<6}'.format (symbol) + ' $' + '{:<7}'.format (last[symbol][0]),
-        col + ' ' + '{:<6}'.format (last[symbol][1]) + '{:<8}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+	print('{:<5}'.format (symbol) + ' $' + '{:<7}'.format (last[symbol][0]),
+        col + ' ' + '{:<8}'.format (last[symbol][1]) + '{:<7}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
 	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
@@ -293,20 +293,21 @@ if args.chart_year:
 		# Load data
 		df = pd.read_csv(charturl)
 
-		# Create figure
-		fig = plot.Figure()
-		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close)))
-
-		# Set title
-		fig.update_layout(template='simple_white',title_text=symbol+" price over time")
-
-		# Add range slider
-		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
-		fig.show()
-		sys.exit(1)
 	except:
 		print("Stock not found")
 		sys.exit(1)
+
+	# Create figure
+	fig = plot.Figure()
+	fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close)))
+
+	# Set title
+	fig.update_layout(template='simple_white',title_text=symbol+" price over time")
+
+	# Add range slider
+	fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
+	fig.show()
+	sys.exit(1)
 
 if args.chart_day:
 	symbol=str(args.chart_day[0])
@@ -315,17 +316,19 @@ if args.chart_day:
 		# Load data
 		df = pd.read_csv(charturl)
 
-		# Create figure
-		fig = plot.Figure()
-		fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close)))
-
-		# Set title
-		fig.update_layout(template='simple_white', title_text=symbol+" price over time")
-		fig.show()
-		sys.exit(1)
 	except:
 		print("Stock not found")
 		sys.exit(1)
+
+	# Create figure
+	fig = plot.Figure()
+	fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close)))
+
+	# Set title
+	fig.update_layout(template='simple_white', title_text=symbol+" price over time")
+	fig.show()
+	sys.exit(1)
+
 
 if args.chart_holdings:
 	holdings = {}
