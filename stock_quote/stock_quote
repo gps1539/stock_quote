@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.3"
+version = "1.8.4"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -333,7 +333,7 @@ if args.chart_day:
 if args.chart_holdings:
 	holdings = {}
 	for symbol in sorted(stocks.keys()):
-		value = ((last[symbol][0]) * (stocks[symbol]))
+		value = (float(last[symbol][0]) * float(stocks[symbol]))
 		holdings.update({symbol:value})
 	df = pd.DataFrame(holdings.items(), columns = ['stock', 'value'])
 	total = str(round(sum(holdings.values()),2))
