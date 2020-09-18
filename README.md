@@ -25,13 +25,13 @@ optional arguments:
                         paid
   -c, --costs           displays cost, quantity and price paid
   -com COMPANY [COMPANY ...], --company COMPANY [COMPANY ...]
-                        get the company details for a stock
+                        get the company details for stock
   -cd CHART_DAY [CHART_DAY ...], --chart_day CHART_DAY [CHART_DAY ...]
-                        display a intra day chart for a symbol
+                        display a intra day chart for symbol(s)
   -ch, --chart_holdings
                         display a pie chart of current holdings
   -cy CHART_YEAR [CHART_YEAR ...], --chart_year CHART_YEAR [CHART_YEAR ...]
-                        display a 12m chart for a symbol
+                        display a 12m chart for a symbol(s)
   -d DELETE [DELETE ...], --delete DELETE [DELETE ...]
                         delete a symbol
   -div DIVIDENDS [DIVIDENDS ...], --dividends DIVIDENDS [DIVIDENDS ...]
@@ -45,14 +45,16 @@ optional arguments:
   -k KEY [KEY ...], --key KEY [KEY ...]
                         add an api key, see https://iexcloud.io
   -n NEWS [NEWS ...], --news NEWS [NEWS ...]
-                        opens news page(s) for symbols in your browser
+                        opens news page(s) for symbols in your
+                        browser
   -o, --offline         displays last downloaded data
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
                         gets quote for single stock
   -R READ [READ ...], --read READ [READ ...]
-                        inport from a csv file (symbol,quantity,price)
+                        inport from a csv file
+                        (symbol,quantity,price)
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
   -s STATS [STATS ...], --stats STATS [STATS ...]
