@@ -22,7 +22,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.6"
+version = "1.8.7"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -34,8 +34,8 @@ parser.add_argument("-c","--costs", help="displays cost, quantity and price paid
 parser.add_argument("-com","--company", nargs='+', help="get the company details for stock")
 parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for symbol(s)")
 parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
-parser.add_argument("-cy","--chart_year", nargs='+', help="display a 12m chart for a symbol(s)")
-parser.add_argument("-cp","--compare", nargs='+', help="display changes over 12m for symbols)")
+parser.add_argument("-cp","--compare", nargs='+', help="display changes over time period for symbols. 1st argument must be 1m, 3m, 6m or 1y")
+parser.add_argument("-cl","--chart_long", nargs='+', help="display price of symbol(s) over a time period. 1st argument must be 1m, 3m, 6m or 1y")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
 parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
@@ -47,7 +47,7 @@ parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbo
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock")
-parser.add_argument("-R","--read", nargs='+', help="inport from a csv file (symbol,quantity,price)")
+parser.add_argument("-R","--read", nargs='+', help="import from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
@@ -277,17 +277,22 @@ if args.add:
 	inputtostocks(symbol,qtn,price)
 	sys.exit(1)
 
-if args.chart_year or args.compare:
+if args.chart_long or args.compare:
 	fig = plot.Figure()
 	if args.compare:
-		args.chart_year = args.compare
+		args.chart_long = args.compare
 
-	for r in range (0, len(args.chart_year)):
-		symbol=str(args.chart_year[r])
+	if (args.chart_long[0]) != '1m' and (args.chart_long[0]) != '3m' and (args.chart_long[0]) != '6m' and (args.chart_long[0]) != '1y':
+		print("First argument for chart_long or compare must be a time period of 1m, 3m, 6m or 1y")
+		sys.exit(1)
+	else:
+		period=(args.chart_long[0])
+
+	for r in range (1, len(args.chart_long)):
+		symbol=str(args.chart_long[r])
 		print(symbol)
 		try:
-			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/chart/1y?&format=csv&token="+key
-
+			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/chart/"+period+"?&format=csv&token="+key
 			# Load data
 			df = pd.read_csv(charturl)
 
@@ -303,9 +308,9 @@ if args.chart_year or args.compare:
 
 	# Set title
 	if args.compare:
-		fig.update_layout(template='simple_white',title_text="Compare stock price change over year")
+		fig.update_layout(template='simple_white',title_text="Compare stock price change over time")
 	else:
-		fig.update_layout(template='simple_white',title_text="Stock price over year")
+		fig.update_layout(template='simple_white',title_text="Stock price over time")
 
 	# Add range slider
 	fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
@@ -342,6 +347,7 @@ if args.chart_holdings:
 	fig = px.pie(df, title='Current holdings $' + total, values='value', names='stock', hole=0.1)
 	fig.update_traces(textposition='inside', textinfo='percent+label')
 	fig.show()
+	sys.exit(1)
 
 if args.quote:
 	symbol=str(args.quote[0])
