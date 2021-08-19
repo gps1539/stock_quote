@@ -22,7 +22,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.7"
+version = "1.8.8"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -50,6 +50,7 @@ parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock
 parser.add_argument("-R","--read", nargs='+', help="import from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
+parser.add_argument("-t","--target", nargs='+', help="set a high and low target price for a symbol")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
 args = parser.parse_args()
 
@@ -93,6 +94,11 @@ if args.portfolio:
 		os.mkdir(portfolio) 
 	os.chdir(os.path.expanduser(portfolio))
 
+if args.target:
+	if len(args.target)!=3:
+		print('A symbol with high and low targets are required with --target')
+		sys.exit(1)
+
 if args.version:
         print('version ' + version)
         sys.exit(1)
@@ -131,6 +137,11 @@ if os.path.exists('last.npy')==False:
 	last={}
 else:
 	last = np.load('last.npy', allow_pickle=True).item()
+
+if os.path.exists('target.npy')==False:
+	target={}
+else:
+	target = np.load('target.npy', allow_pickle=True).item()
 
 Gain={}
 value = cost.copy()
@@ -242,14 +253,6 @@ def printcosts(symbol):
 	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
 	return
 
-def printindex(symbol):
-	if ((last[symbol][1])[0])=='-':
-		col=(Fore.RED)
-	else:
-		col=(Fore.GREEN)
-	print('{:<6}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
-	return
-
 def printtotal():
 	gain=sum(day.values())
 
@@ -270,11 +273,37 @@ def printtotal():
 	print()
 	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
+def checktargets():
+	print()
+	for key in sorted(stocks.keys()):
+		if key in target :
+			if (float(last[key][0]) > float(target[key][0])):
+				print(key,'is above your target of', float(target[key][0]), 'at', float(last[key][0]))
+			if (float(last[key][0]) < float(target[key][1])):
+				print(key,'is below your target of', float(target[key][1]), 'at', float(last[key][0]))
+	sys.exit(1)
+
 if args.add:
 	symbol=str(args.add[0])
 	qtn=int(args.add[1])
 	price=float(args.add[2])
 	inputtostocks(symbol,qtn,price)
+	sys.exit(1)
+
+if args.target:
+	symbol=str(args.target[0])
+	th=float(args.target[1])
+	tl=float(args.target[2])
+	if tl > th:
+		th=(args.target[2])
+		tl=(args.target[1])
+	t=th,tl
+	if symbol in stocks:
+		target.update({symbol:t})
+		np.save('target.npy', target)
+	else:
+		print('Please input stock first with --add')
+		sys.exit(1)
 	sys.exit(1)
 
 if args.chart_long or args.compare:
@@ -497,7 +526,8 @@ def offline():
 	print("Offline Mode")
 	for key in sorted(stocks.keys()):
 		printstock(key)
-	print()	
+	printtotal()
+	checktargets()
 
 def costs():
 	os.system('clear')
@@ -515,6 +545,7 @@ def online():
 		printstock(key)
 	np.save('last.npy', last)
 	printtotal()
+	checktargets()
 
 def totalgain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
@@ -524,6 +555,7 @@ def totalgain():
 	for stock in sorted(last.items(), key=lambda x:float(x[1][4]), reverse=True):
 		printstock(stock[0])	
 	printtotal()
+	checktargets()
 
 def dailygain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
@@ -534,6 +566,7 @@ def dailygain():
 		printstock(stock[0])	
 	np.save('last.npy', last)
 	printtotal()
+	checktargets()
 
 if args.repeat:
 	interval=(60*int(args.repeat[0]))
