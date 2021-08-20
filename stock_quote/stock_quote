@@ -22,7 +22,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.8"
+version = "1.8.9"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -30,7 +30,7 @@ os.chdir(os.path.expanduser("~"))
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
-parser.add_argument("-c","--costs", help="displays cost, quantity and price paid",action="store_true")
+parser.add_argument("-c","--costs", help="displays cost, quantity, price paid and target prices",action="store_true")
 parser.add_argument("-com","--company", nargs='+', help="get the company details for stock")
 parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for symbol(s)")
 parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
@@ -250,7 +250,11 @@ def printstock(symbol):
 
 def printcosts(symbol):
 	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
-	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
+	if symbol in target:
+		Target =str(target[symbol])
+	else:
+		Target = 'None'
+	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<6}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' +'{:<8}'.format  (str(paid)) + ' ' 'Targets ' + Target)
 	return
 
 def printtotal():
@@ -531,7 +535,6 @@ def offline():
 
 def costs():
 	os.system('clear')
-	print("costs")
 	for key in sorted(stocks.keys()):
 		printcosts(key)
 	print()	
