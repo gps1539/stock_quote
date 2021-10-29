@@ -22,7 +22,7 @@ import pandas as pd
 
 init()
 
-version = "1.8.9"
+version = "1.9.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -285,7 +285,6 @@ def checktargets():
 				print(key,'is above your target of', float(target[key][0]), 'at', float(last[key][0]))
 			if (float(last[key][0]) < float(target[key][1])):
 				print(key,'is below your target of', float(target[key][1]), 'at', float(last[key][0]))
-	sys.exit(1)
 
 if args.add:
 	symbol=str(args.add[0])
