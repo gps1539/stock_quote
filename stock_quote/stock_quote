@@ -17,12 +17,11 @@ from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
 import plotly.graph_objects as plot
 import plotly.express as px
-#import plotly.graph_objs as go
 import pandas as pd
 
 init()
 
-version = "1.9.0"
+version = "1.9.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -31,11 +30,13 @@ os.chdir(os.path.expanduser("~"))
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("-c","--costs", help="displays cost, quantity, price paid and target prices",action="store_true")
+parser.add_argument("-ca","--cash", nargs='+', help="add an amount of cash held in the portfolio")
 parser.add_argument("-com","--company", nargs='+', help="get the company details for stock")
 parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for symbol(s)")
 parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
 parser.add_argument("-cp","--compare", nargs='+', help="display changes over time period for symbols. 1st argument must be 1m, 3m, 6m or 1y")
 parser.add_argument("-cl","--chart_long", nargs='+', help="display price of symbol(s) over a time period. 1st argument must be 1m, 3m, 6m or 1y")
+parser.add_argument("-cv","--chart_value", help="display the value of the portfolio over time",action="store_true")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
 parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
@@ -116,7 +117,11 @@ if args.key:
 	else:		
 		print('failed, please get a valid key from https://iexcloud.io')
 		sys.exit(1)
-
+if args.cash:
+	if len(args.cash)!=1:
+		print('a dollar amount is required with --cash')
+		sys.exit(1)
+	
 if os.path.exists('key.npy')==False:
 	print("Please add a valid key")
 	sys.exit(1)
@@ -274,8 +279,26 @@ def printtotal():
 		ptgain=(Fore.RED  + str(tgain))
 	else:
 		ptgain=(Fore.GREEN + str(tgain))
+	if os.path.exists('cash.npy')==True:
+		cash=np.load('cash.npy', allow_pickle=True).item()
+		print(('Cash  $') + str(cash))
+		pmkt=str(round(mkt+cash))
 	print()
-	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
+	print('Total $' + '{:<9}'.format (pmkt) + '{:<13}'.format (ptgain) + '{:<7}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
+
+	date = (datetime.date.today())
+#	date = (datetime.date.today()+ datetime.timedelta(days=1))
+
+	if os.path.exists('value.npy')==False:
+		v = {}
+		v.update({'date':'value'})
+		v.update({str(date):pmkt})
+		np.save('value.npy', v)
+
+	else:
+		v = np.load('value.npy', allow_pickle=True).item()
+		v.update({str(date):pmkt})
+		np.save('value.npy', v)
 
 def checktargets():
 	print()
@@ -291,6 +314,11 @@ if args.add:
 	qtn=int(args.add[1])
 	price=float(args.add[2])
 	inputtostocks(symbol,qtn,price)
+	sys.exit(1)
+
+if args.cash:
+	cash=int(args.cash[0])
+	np.save('cash.npy', cash)
 	sys.exit(1)
 
 if args.target:
@@ -357,7 +385,6 @@ if args.chart_day:
 			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices/chartIEXOnly?&format=csv&token="+key
 			# Load data
 			df = pd.read_csv(charturl)
-
 		except:
 			print("Stock not found")
 			sys.exit(1)
@@ -380,6 +407,22 @@ if args.chart_holdings:
 	fig.update_traces(textposition='inside', textinfo='percent+label')
 	fig.show()
 	sys.exit(1)
+	
+if args.chart_value:
+	if os.path.exists('value.npy')==False:
+		print('No values recorded yet')
+		sys.exit(1)
+	else:
+		totalvalue=np.load('value.npy', allow_pickle=True).item()
+
+		dates = list (totalvalue.keys())
+		values = list (totalvalue.values())
+		fig = px.line(x=dates, y=values, title='Portfolio value $', template='simple_white')
+		fig.update_yaxes(title='$ value')
+		fig.update_xaxes(title='date')
+		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))		
+		fig.show()
+		sys.exit(1)
 
 if args.quote:
 	symbol=str(args.quote[0])
@@ -558,7 +601,7 @@ def totalgain():
 		printstock(stock[0])	
 	printtotal()
 	checktargets()
-
+	
 def dailygain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
 	pool = Pool(len(stocks))
