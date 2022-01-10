@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.1"
+version = "1.9.2"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -420,6 +420,7 @@ if args.chart_value:
 		fig = px.line(x=dates, y=values, title='Portfolio value $', template='simple_white')
 		fig.update_yaxes(title='$ value')
 		fig.update_xaxes(title='date')
+		fig['layout']['yaxis']['autorange'] = "reversed"
 		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))		
 		fig.show()
 		sys.exit(1)
