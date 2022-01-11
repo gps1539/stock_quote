@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.2"
+version = "1.9.3"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -287,17 +287,15 @@ def printtotal():
 	print('Total $' + '{:<9}'.format (pmkt) + '{:<13}'.format (ptgain) + '{:<7}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
 	date = (datetime.date.today())
-#	date = (datetime.date.today()+ datetime.timedelta(days=1))
 
 	if os.path.exists('value.npy')==False:
 		v = {}
-		v.update({'date':'value'})
-		v.update({str(date):pmkt})
+		v.update({str(date):float(pmkt)})
 		np.save('value.npy', v)
 
 	else:
 		v = np.load('value.npy', allow_pickle=True).item()
-		v.update({str(date):pmkt})
+		v.update({str(date):float(pmkt)})
 		np.save('value.npy', v)
 
 def checktargets():
@@ -413,14 +411,12 @@ if args.chart_value:
 		print('No values recorded yet')
 		sys.exit(1)
 	else:
+		fig = plot.Figure()
 		totalvalue=np.load('value.npy', allow_pickle=True).item()
-
-		dates = list (totalvalue.keys())
-		values = list (totalvalue.values())
-		fig = px.line(x=dates, y=values, title='Portfolio value $', template='simple_white')
+		df = pd.DataFrame(totalvalue.items(), columns = ['date', 'value'])
+		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.value), showlegend=True, name='value', connectgaps=True))
+		fig.update_layout(template='simple_white', title_text="Portfolio value over time")
 		fig.update_yaxes(title='$ value')
-		fig.update_xaxes(title='date')
-		fig['layout']['yaxis']['autorange'] = "reversed"
 		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))		
 		fig.show()
 		sys.exit(1)
