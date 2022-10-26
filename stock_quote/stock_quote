@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.4"
+version = "1.9.5"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -254,12 +254,12 @@ def printstock(symbol):
 	return
 
 def printcosts(symbol):
-	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
+	paid=(str(round(float((cost[symbol])/(stocks[symbol])),4)))
 	if symbol in target:
 		Target =str(target[symbol])
 	else:
 		Target = 'None'
-	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<6}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' +'{:<8}'.format  (str(paid)) + ' ' 'Targets ' + Target)
+	print('{:<6}'.format (symbol) + 'Cost $' + '{:<12}'.format (str(round(float(cost[symbol]),2))) + ' ' + 'Qty ' +  '{:<6}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' +'{:<8}'.format  (str(paid)) + ' ' 'Targets ' + Target)
 	return
 
 def printtotal():
