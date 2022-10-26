@@ -250,7 +250,7 @@ def printstock(symbol):
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
 	print('{:<5}'.format (symbol) + ' $' + '{:<7}'.format (last[symbol][0]),
         col + ' ' + '{:<8}'.format (last[symbol][1]) + '{:<7}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<10}'.format (str(round((stocks[symbol])*(float(last[symbol][0])),2))), 
-	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]),2))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
+	'gain $' + tcol + '{:<11}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]),2))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
 def printcosts(symbol):
