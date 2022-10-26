@@ -1,0 +1,567 @@
+#!/usr/bin/env python3
+import urllib.request
+import sys
+import os
+import re
+#import getopt
+import numpy as np
+import argparse
+from colorama import init, Fore, Back, Style
+from influxdb import InfluxDBClient
+import time
+import datetime
+import webbrowser
+from multiprocessing.dummy import Pool
+from pygments import highlight
+from pygments.lexers import JsonLexer
+from pygments.formatters import TerminalFormatter
+#import json
+#import requests
+import plotly.graph_objects as plot
+import plotly.express as px
+import pandas as pd
+
+init()
+
+version = "1.7.2"
+
+# set directory to user's home (should work for Linux, Mac and Windows)
+os.chdir(os.path.expanduser("~"))
+
+# command line options and help
+parser = argparse.ArgumentParser()
+parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
+parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for a symbol")
+parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
+parser.add_argument("-cy","--chart_year", nargs='+', help="display a 12m chart for a symbol")
+parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
+parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
+parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
+parser.add_argument("-c","--costs", help="displays cost, quantity and price paid",action="store_true")
+parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
+parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://iexcloud.io")
+parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
+parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
+parser.add_argument("-p","--portfolio", help="choose a portfolio")
+parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock")
+parser.add_argument("-R","--read", nargs='+', help="inport from a csv file (symbol,quantity,price)")
+parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
+parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
+parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
+args = parser.parse_args()
+
+if args.add:
+	if len(args.add)!=3:
+		print('symbol, quantity and price are required with --add')
+		sys.exit(1)
+
+if args.chart_day:
+	if len(args.chart_day)!=1:
+		print('symbol is required with --chart_day')
+		sys.exit(1)
+
+if args.chart_year:
+	if len(args.chart_year)!=1:
+		print('symbol is required with --chart_year')
+		sys.exit(1)
+
+if args.delete:
+	if len(args.delete)!=1:
+		print('a symbol is required with --delete')
+		sys.exit(1)
+
+if args.influx:
+	if len(args.influx)!=4:
+		print('The influxdb server, port #, user and password are required with --influx')
+		sys.exit(1)
+
+if args.news:
+	if len(args.news)<1:
+		print('a symbol is required with --news')
+		sys.exit(1)
+	else:
+		for symbol in (args.news):
+			webbrowser.open('https://seekingalpha.com/symbol/'+symbol, new=2)
+		sys.exit(1)
+
+if args.read:
+	if len(args.read)!=1:
+		print('a csv filename is required with --read')
+		sys.exit(1)
+
+if args.repeat:
+	if len(args.repeat)!=1:
+		print('Number of Minutes is required with --repeat')
+		sys.exit(1)
+
+if args.portfolio:
+	portfolio=str("." + (args.portfolio))
+	if os.path.exists(portfolio)==False:
+		os.mkdir(portfolio) 
+	os.chdir(os.path.expanduser(portfolio))
+
+if args.version:
+        print('version ' + version)
+        sys.exit(1)
+
+if args.key:
+	if len(args.key)!=1:
+		print('an api key is required with --key')
+		sys.exit(1)
+	else:
+		apikey=str(args.key[0])
+		print("Testing key " + apikey)
+		try:
+			url = "https://cloud.iexapis.com/stable/stock/aapl/quote?token="+apikey
+			u = urllib.request.urlopen(url)
+			k = u.read()
+			print(len(k))
+			if len(k) > 10:
+				print("passed")
+				np.save('key.npy', apikey)
+		except urllib.error.URLError:
+			print('failed, please get a valid key from https://iexcloud.io')
+			sys.exit(1)
+
+if os.path.exists('key.npy')==False:
+	print("Please add a valid key")
+	sys.exit(1)
+else:
+	key = np.load('key.npy', allow_pickle=True).item()
+
+if os.path.exists('stocks.npy')==False:
+	stocks={}
+else:
+	stocks = np.load('stocks.npy', allow_pickle=True).item()
+
+if os.path.exists('cost.npy')==False:
+	cost={}
+else:
+	cost = np.load('cost.npy', allow_pickle=True).item()
+
+if os.path.exists('last.npy')==False:
+	last={}
+else:
+	last = np.load('last.npy', allow_pickle=True).item()
+
+Gain={}
+value = cost.copy()
+day = cost.copy()
+
+# function to add stock, quantity and price. checks if stock is valid
+def inputtostocks(symbol, qtn, price):
+	url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+	try: urllib.request.urlopen(url)
+	except urllib.error.URLError as e:
+		print("stock not found")
+		sys.exit(1)     
+	paid=int(qtn*price)
+	stocks.update({symbol:qtn})
+	np.save('stocks.npy', stocks) 
+	cost.update({symbol:paid})
+	np.save('cost.npy', cost)
+	last.update({symbol:[price,0,0,0,0]})
+	np.save('last.npy', last)
+	getprice(symbol)
+	printstock(symbol)
+
+# function to remove a stock      
+def removestocks(sym):
+	if sym in stocks:
+		del stocks[sym]
+		np.save('stocks.npy', stocks)
+	if sym in cost:
+		del cost[sym]
+		del value[sym]
+		del day[sym]
+		np.save('cost.npy', cost)
+	if sym in last:
+		del last[sym]
+		np.save('last.npy', last)
+	return
+
+def getprice(symbol):
+	# get current price
+	try:
+		priceurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		p = urllib.request.urlopen(priceurl)
+		r = p.read()
+#		print(r)
+		while len(r) < 400:
+			time.sleep(1)
+			p = urllib.request.urlopen(priceurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		p = r.split('"iexRealtimePrice":')[1]
+		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+			p = r.split('"latestPrice":')[1]
+			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+				p = r.split('"delayedPrice":')[1]
+				if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+					print('No price data for ' + symbol + ', showing last value')
+					return
+		price = round(float(p.split(',')[0]),2)
+		prev = r.split('"previousClose":')[1]
+		prev = float(prev.split(',')[0])
+		change = str(round(float(price-prev),2))
+		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
+		gain = (round(((float(price)/float(prev))-1)*100,2))
+		totalgain = (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))))
+		last.update({symbol:[price,change,percent,gain,totalgain]})
+
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol + ', showing last value')
+		return
+
+def printstock(symbol):
+	if ((last[symbol][1])[0])=='-':
+		col=(Fore.RED)
+	else:
+		col=(Fore.GREEN)	
+	if (((stocks[symbol])*(float(last[symbol][0]))) -(cost[symbol])) <0:
+		tcol=(Fore.RED)
+	else:
+		tcol=(Fore.GREEN)   
+	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
+	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
+	print('{:<6}'.format (symbol) + ' $' + '{:<6}'.format (last[symbol][0]),
+        col + ' ' + '{:<9}'.format (last[symbol][1]) + '{:<8}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
+	return
+
+def printcosts(symbol):
+	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
+	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
+	return
+
+def printindex(symbol):
+	if ((last[symbol][1])[0])=='-':
+		col=(Fore.RED)
+	else:
+		col=(Fore.GREEN)
+	print('{:<6}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
+	return
+
+def printtotal():
+	gain=sum(day.values())
+
+	if (gain)<0:
+		pgain=(Fore.RED + str(round(gain)))
+	else:
+		pgain=(Fore.GREEN + str(round(gain)))
+
+	mkt=sum(value.values())
+	cst=sum(cost.values())
+	tgain=(round((mkt-cst)))
+	pmkt=str(round(mkt))
+
+	if (tgain)<0:
+		ptgain=(Fore.RED  + str(tgain))
+	else:
+		ptgain=(Fore.GREEN + str(tgain))
+	print()
+	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
+
+if args.add:
+	symbol=str(args.add[0])
+	qtn=int(args.add[1])
+	price=float(args.add[2])
+	inputtostocks(symbol,qtn,price)
+	sys.exit(1)
+
+if args.chart_year:
+	symbol=str(args.chart_year[0])
+	try:
+		charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/chart/1y?&format=csv&token="+key
+
+		# Load data
+		df = pd.read_csv(charturl)
+
+		# Create figure
+		fig = plot.Figure()
+
+		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close)))
+
+		# Set title
+		fig.update_layout(template='simple_white',title_text=symbol+" price over time")
+
+		# Add range slider
+		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
+		fig.show()
+		sys.exit(1)
+	except:
+		print("Stock not found")
+		sys.exit(1)
+
+if args.chart_day:
+	symbol=str(args.chart_day[0])
+	try:
+		charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices/chartIEXOnly?&format=csv&token="+key
+		# Load data
+		df = pd.read_csv(charturl)
+
+		# Create figure
+		fig = plot.Figure()
+		fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close)))
+
+		# Set title
+		fig.update_layout(template='simple_white', title_text=symbol+" price over time")
+		fig.show()
+		sys.exit(1)
+	except:
+		print("Stock not found")
+		sys.exit(1)
+
+if args.chart_holdings:
+	holdings = {}
+	for symbol in sorted(stocks.keys()):
+		value = ((last[symbol][0]) * (stocks[symbol]))
+		holdings.update({symbol:value})
+	df = pd.DataFrame(holdings.items(), columns = ['stock', 'value'])
+	total = str(round(sum(holdings.values()),2))
+	fig = px.pie(df, title='Current holdings $' + total, values='value', names='stock', hole=0.1)
+	fig.update_traces(textposition='inside', textinfo='percent+label')
+	fig.show()
+	sys.exit(1)
+
+if args.quote:
+	symbol=str(args.quote[0])
+	try:
+		quoteurl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		p = urllib.request.urlopen(quoteurl)
+		r = p.read()
+		while len(r) < 400:
+			time.sleep(1)
+			p = urllib.request.urlopen(quoteurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		p = r.split('"iexRealtimePrice":')[1]
+		if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+			p = r.split('"latestPrice":')[1]
+			if (p.split(',')[0]) == 'null' or (p.split(',')[0]) == '0':
+				p = r.split('"previousClose":')[1]
+		price = round(float(p.split(',')[0]),2)
+		prev = r.split('"previousClose":')[1]
+		prev = float(prev.split(',')[0])
+		pe = r.split('"peRatio":')[1]
+		pe = str(pe.split(',')[0])
+		bid = r.split('"iexBidPrice":')[1]
+		bid = str(bid.split(',')[0])
+		ask = r.split('"iexAskPrice":')[1]
+		ask = str(ask.split(',')[0])
+		high52 = r.split('"week52High":')[1]
+		high52 = str(high52.split(',')[0])
+		low52 = r.split('"week52Low":')[1]
+		low52 = str(low52.split(',')[0])
+		volume = r.split('"iexVolume":')[1]
+		volume = str(volume.split(',')[0])
+		cap = r.split('"marketCap":')[1]
+		cap = str(cap.split(',')[0])
+		name = r.split('"companyName":')[1]
+		name = str(name.split(',')[0])
+		change = str(round(float(price-prev),2))
+		percent = (str(round(((float(price)/float(prev))-1)*100,2)))
+		if (change[0])=='-':
+			change=(Fore.RED + str(change))
+		else:
+			change=(Fore.GREEN + str(change))
+		print ()
+		print ('Symbol       : ' + (symbol) + ' : ' + (name))
+		print ('Price        : ' + (str(price)))
+		print ('Change       : ' + '{:<6}'.format (change) + ' ' + '{:<6}'.format (percent+'%') + Style.RESET_ALL)
+		print ('PE ratio     : ' + (pe))
+		print ('Bid Price    : ' + (bid))
+		print ('Ask Price    : ' + (ask))
+		print ('52 week high : ' + (high52))
+		print ('52 week low  : ' + (low52))
+		print ('Volume       : ' + (volume))
+		print ('Market cap   : ' + (cap))
+		if not args.stats:
+			sys.exit(1)
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
+
+if args.stats:
+	symbol=str(args.stats[0])
+	try:
+		statsurl = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+		p = urllib.request.urlopen(statsurl)
+		r = p.read()
+		while len(r) < 400:
+			time.sleep(1)
+			p = urllib.request.urlopen(priceurl)
+			r = p.read()
+		r = (r.decode("utf-8").strip())
+		name = r.split('"companyName":')[1]
+		name = str(name.split(',')[0])
+		employees = r.split('"employees":')[1]
+		employees = str(employees.split(',')[0])
+		ttmEPS = r.split('"ttmEPS":')[1]
+		ttmEPS = str(ttmEPS.split(',')[0])
+		exDividendDate = r.split('"exDividendDate":')[1]
+		exDividendDate = str(exDividendDate.split('"')[1])
+		dividendYield = r.split('"dividendYield":')[1]
+		dividendYield = str(dividendYield.split(',')[0])
+		beta = r.split('"beta":')[1]
+		beta = str(beta.split('}')[0])
+		print ()
+		print ('Symbol       : ' + (symbol) + ' : ' + (name))	
+		print ('Employees    : ' + (employees))
+		print ('ttm EPS      : ' + (ttmEPS))
+		print ('Ex Dividend  : ' + (exDividendDate))
+		print ('Yield        : ' + (dividendYield))
+		print ('Beta         : ' + (beta))
+		sys.exit(1)
+	except urllib.error.URLError as e:
+		print('http timeout getting ' + symbol)
+		sys.exit(1)
+
+# read csv file that was downloaded from google finance
+if args.read:
+	a=(args.read[0])
+	with open(a) as file:
+		next(file)
+		for line in file:
+			if (line[0]) == ",":
+				next(file)
+			else:
+				currentline = line.split(",")
+				if (currentline[1][0]) == '.':
+					next(file)
+				else:
+					if (currentline[1][-1]) == '"':
+						sym=str(currentline[1])
+						qtn=float(currentline[2])
+						price=(float(currentline[3]))/(float(currentline[2]))
+					else:
+						sym=str(currentline[0])
+						qtn=float(currentline[1])
+						price=(float(currentline[2]))/(float(currentline[1]))
+			inputtostocks(sym,qtn,price)
+		sys.exit(1)
+
+# call removestocks if --delete option on command line      
+if args.delete:
+	sym=str(args.delete[0])
+	removestocks(sym)
+	sys.exit(1)
+
+# polite exit if no stocks in dictionary and --added not used
+if len(stocks)==0:
+	print('Please input stocks with --add')
+	sys.exit(1)
+
+# operation modes
+
+def influx():
+	server=str(args.influx[0])
+	port=int(args.influx[1])
+	user=str(args.influx[2])
+	password=str(args.influx[3])
+	metric = "Stocks"
+	database = "stock_quote"
+	series = []
+	if args.portfolio:
+		database=str(args.portfolio)		
+
+# Call getprice to update data
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+
+	for symbol in sorted(stocks.keys()):
+		s=(float(last[symbol][0])) #current price
+		change=(float(last[symbol][1]))
+		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
+		gain=(round(value-(cost[symbol]),2))
+		pointValues = {
+			"time": datetime.datetime.today(),
+	       	        "measurement": metric,
+        	        'fields':  {
+				'price': s,
+				'change' : change,
+				'value': value,
+				'gain' : gain,
+        	        },
+        	        'tags': {
+				"Stock": symbol,
+        	        },
+        	    }
+		series.append(pointValues)
+	client = InfluxDBClient(server, port, user, password, database)
+	client.create_database(database)
+	client.write_points(series)
+
+def offline():
+	os.system('clear')
+	print("Offline Mode")
+	for key in sorted(stocks.keys()):
+		printstock(key)
+	print(last)
+	print()	
+
+def costs():
+	os.system('clear')
+	print("costs")
+	for key in sorted(stocks.keys()):
+		printcosts(key)
+	print(last)
+	print()	
+
+def online():
+	print("fetching data for " + (str(len(stocks))) + " stocks ...")
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+	os.system('clear')	
+	for key in sorted(stocks.keys()):
+		printstock(key)
+	np.save('last.npy', last)
+	printtotal()
+
+def totalgain():
+	print("fetching data for " + (str(len(stocks))) + " stocks ...")
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+	os.system('clear')	
+	for stock in sorted(last.items(), key=lambda x:float(x[1][4]), reverse=True):
+		printstock(stock[0])	
+	printtotal()
+
+def dailygain():
+	print("fetching data for " + (str(len(stocks))) + " stocks ...")
+	pool = Pool(len(stocks))
+	pool.map(getprice, stocks.keys())
+	os.system('clear')	
+	for stock in sorted(last.items(), key=lambda x:float(x[1][2]), reverse=True):
+		printstock(stock[0])	
+	np.save('last.npy', last)
+	printtotal()
+
+if args.repeat:
+	interval=(60*int(args.repeat[0]))
+	while True:
+		if args.influx:
+			influx()
+		elif args.offline:
+			offline()
+		else:
+			online()
+		time.sleep(interval)
+
+elif args.influx:
+	influx()
+
+elif args.offline:
+	offline()
+
+elif args.costs:
+	costs()	
+
+elif args.dailygain:
+	dailygain()
+
+elif args.totalgain:
+	totalgain()
+
+else:
+	online()

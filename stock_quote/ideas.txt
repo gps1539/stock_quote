@@ -1,0 +1,19 @@
+Website = https://iexcloud.io/docs/api/#rest-how-to
+
+7. account - check API allocation - account/usage?token=<secret-key>
+6. company - show company details - /stock/IBM/company?
+
+
+5. dividends - /stock/IBM/dividends/next?
+3. Earning - stock/IBM/earnings?
+
+
+
+1. Price Target - from analysts? - premium only
+2. Financials - premium only
+4. balance sheet - premium only
+8. Estimates - what analysts predicted vs actuals? - premium only
+9. Sector performance - premium only
+10. insider - who sold - premium only
+11. Earnings_today - who just reported - complex json and heavy API use
+12. Currency - premium only

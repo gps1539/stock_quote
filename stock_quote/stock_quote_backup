@@ -17,11 +17,12 @@ from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
 import plotly.graph_objects as plot
 import plotly.express as px
+#import plotly.graph_objs as go
 import pandas as pd
 
 init()
 
-version = "1.9.4"
+version = "1.8.7"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -29,14 +30,12 @@ os.chdir(os.path.expanduser("~"))
 # command line options and help
 parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
-parser.add_argument("-c","--costs", help="displays cost, quantity, price paid and target prices",action="store_true")
-parser.add_argument("-ca","--cash", nargs='+', help="add an amount of cash held in the portfolio")
+parser.add_argument("-c","--costs", help="displays cost, quantity and price paid",action="store_true")
 parser.add_argument("-com","--company", nargs='+', help="get the company details for stock")
 parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for symbol(s)")
 parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
 parser.add_argument("-cp","--compare", nargs='+', help="display changes over time period for symbols. 1st argument must be 1m, 3m, 6m or 1y")
 parser.add_argument("-cl","--chart_long", nargs='+', help="display price of symbol(s) over a time period. 1st argument must be 1m, 3m, 6m or 1y")
-parser.add_argument("-cv","--chart_value", help="display the value of the portfolio over time",action="store_true")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
 parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
@@ -51,7 +50,6 @@ parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock
 parser.add_argument("-R","--read", nargs='+', help="import from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
-parser.add_argument("-t","--target", nargs='+', help="set a high and low target price for a symbol")
 parser.add_argument("-v","--version", help="print the version and exit",action="store_true")
 args = parser.parse_args()
 
@@ -95,11 +93,6 @@ if args.portfolio:
 		os.mkdir(portfolio) 
 	os.chdir(os.path.expanduser(portfolio))
 
-if args.target:
-	if len(args.target)!=3:
-		print('A symbol with high and low targets are required with --target')
-		sys.exit(1)
-
 if args.version:
         print('version ' + version)
         sys.exit(1)
@@ -117,11 +110,7 @@ if args.key:
 	else:		
 		print('failed, please get a valid key from https://iexcloud.io')
 		sys.exit(1)
-if args.cash:
-	if len(args.cash)!=1:
-		print('a dollar amount is required with --cash')
-		sys.exit(1)
-	
+
 if os.path.exists('key.npy')==False:
 	print("Please add a valid key")
 	sys.exit(1)
@@ -142,11 +131,6 @@ if os.path.exists('last.npy')==False:
 	last={}
 else:
 	last = np.load('last.npy', allow_pickle=True).item()
-
-if os.path.exists('target.npy')==False:
-	target={}
-else:
-	target = np.load('target.npy', allow_pickle=True).item()
 
 Gain={}
 value = cost.copy()
@@ -177,7 +161,7 @@ def inputtostocks(symbol, qtn, price):
 	if r.status_code == 404:
 		print(symbol + ' is unknown')
 		sys.exit(1)
-	paid=float(qtn*price)
+	paid=int(qtn*price)
 	stocks.update({symbol:qtn})
 	np.save('stocks.npy', stocks) 
 	cost.update({symbol:paid})
@@ -220,6 +204,7 @@ def getprice(symbol):
 				if (price) == None or (price) == 0:
 					return
 		prev = (r['previousClose'])
+		print(symbol, prev)
 		if r['change'] == None :
 			change = '0'
 		else :
@@ -249,17 +234,21 @@ def printstock(symbol):
 	day[symbol]=(float(last[symbol][1])*(stocks[symbol]))
 	value[symbol] =((stocks[symbol])*(float(last[symbol][0])))	
 	print('{:<5}'.format (symbol) + ' $' + '{:<7}'.format (last[symbol][0]),
-        col + ' ' + '{:<8}'.format (last[symbol][1]) + '{:<7}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<10}'.format (str(round((stocks[symbol])*(float(last[symbol][0])),2))), 
-	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]),2))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
+        col + ' ' + '{:<8}'.format (last[symbol][1]) + '{:<7}'.format (str(last[symbol][2]) + '%') + Style.RESET_ALL, 	'value $' + '{:<8}'.format (str(round((stocks[symbol])*(float(last[symbol][0]))))), 
+	'gain $' + tcol + '{:<8}'.format (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol])))) + str(round(100*((((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))/(cost[symbol])),2))+'%'+ Style.RESET_ALL)
 	return
 
 def printcosts(symbol):
 	paid=(str(round(float((cost[symbol])/(stocks[symbol])),2)))
-	if symbol in target:
-		Target =str(target[symbol])
+	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<8}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' + paid)
+	return
+
+def printindex(symbol):
+	if ((last[symbol][1])[0])=='-':
+		col=(Fore.RED)
 	else:
-		Target = 'None'
-	print('{:<6}'.format (symbol) + 'Cost $' + '{:<8}'.format (str(cost[symbol])) + ' ' + 'Qty ' +  '{:<6}'.format (str(round(float(stocks[symbol])))) + ' ' + 'Price $' +'{:<8}'.format  (str(paid)) + ' ' 'Targets ' + Target)
+		col=(Fore.GREEN)
+	print('{:<6}'.format (symbol) + ' ' + '{:<8}'.format  (round(float(last[symbol][0]),2)), col + '{:<8}'.format (round(float(last[symbol][1]),2)) + ' ' + (last[symbol][2]) + Style.RESET_ALL)
 	return
 
 def printtotal():
@@ -279,60 +268,14 @@ def printtotal():
 		ptgain=(Fore.RED  + str(tgain))
 	else:
 		ptgain=(Fore.GREEN + str(tgain))
-	if os.path.exists('cash.npy')==True:
-		cash=np.load('cash.npy', allow_pickle=True).item()
-		print(('Cash  $') + str(cash))
-		pmkt=str(round(mkt+cash))
 	print()
-	print('Total $' + '{:<9}'.format (pmkt) + '{:<13}'.format (ptgain) + '{:<7}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
-
-	date = (datetime.date.today())
-
-	if os.path.exists('value.npy')==False:
-		v = {}
-		v.update({str(date):float(pmkt)})
-		np.save('value.npy', v)
-
-	else:
-		v = np.load('value.npy', allow_pickle=True).item()
-		v.update({str(date):float(pmkt)})
-		np.save('value.npy', v)
-
-def checktargets():
-	print()
-	for key in sorted(stocks.keys()):
-		if key in target :
-			if (float(last[key][0]) > float(target[key][0])):
-				print(key,'is above your target of', float(target[key][0]), 'at', float(last[key][0]))
-			if (float(last[key][0]) < float(target[key][1])):
-				print(key,'is below your target of', float(target[key][1]), 'at', float(last[key][0]))
+	print('Total  $' + '{:<8}'.format (pmkt) + '{:<14}'.format (ptgain) + '{:<8}'.format (str(round((100*(mkt-cst)/cst),2)) +'%') + Style.RESET_ALL, 'Daily $' + '{:<14}'.format (pgain) + str(round((100*(gain/mkt)),2))+'%' + Style.RESET_ALL)
 
 if args.add:
 	symbol=str(args.add[0])
 	qtn=int(args.add[1])
 	price=float(args.add[2])
 	inputtostocks(symbol,qtn,price)
-	sys.exit(1)
-
-if args.cash:
-	cash=int(args.cash[0])
-	np.save('cash.npy', cash)
-	sys.exit(1)
-
-if args.target:
-	symbol=str(args.target[0])
-	th=float(args.target[1])
-	tl=float(args.target[2])
-	if tl > th:
-		th=(args.target[2])
-		tl=(args.target[1])
-	t=th,tl
-	if symbol in stocks:
-		target.update({symbol:t})
-		np.save('target.npy', target)
-	else:
-		print('Please input stock first with --add')
-		sys.exit(1)
 	sys.exit(1)
 
 if args.chart_long or args.compare:
@@ -383,6 +326,7 @@ if args.chart_day:
 			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices/chartIEXOnly?&format=csv&token="+key
 			# Load data
 			df = pd.read_csv(charturl)
+
 		except:
 			print("Stock not found")
 			sys.exit(1)
@@ -405,21 +349,6 @@ if args.chart_holdings:
 	fig.update_traces(textposition='inside', textinfo='percent+label')
 	fig.show()
 	sys.exit(1)
-	
-if args.chart_value:
-	if os.path.exists('value.npy')==False:
-		print('No values recorded yet')
-		sys.exit(1)
-	else:
-		fig = plot.Figure()
-		totalvalue=np.load('value.npy', allow_pickle=True).item()
-		df = pd.DataFrame(totalvalue.items(), columns = ['date', 'value'])
-		fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.value), showlegend=True, name='value', connectgaps=True))
-		fig.update_layout(template='simple_white', title_text="Portfolio value over time")
-		fig.update_yaxes(title='$ value')
-		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))		
-		fig.show()
-		sys.exit(1)
 
 if args.quote:
 	symbol=str(args.quote[0])
@@ -569,11 +498,11 @@ def offline():
 	print("Offline Mode")
 	for key in sorted(stocks.keys()):
 		printstock(key)
-	printtotal()
-	checktargets()
+	print()	
 
 def costs():
 	os.system('clear')
+	print("costs")
 	for key in sorted(stocks.keys()):
 		printcosts(key)
 	print()	
@@ -587,7 +516,6 @@ def online():
 		printstock(key)
 	np.save('last.npy', last)
 	printtotal()
-	checktargets()
 
 def totalgain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
@@ -597,8 +525,7 @@ def totalgain():
 	for stock in sorted(last.items(), key=lambda x:float(x[1][4]), reverse=True):
 		printstock(stock[0])	
 	printtotal()
-	checktargets()
-	
+
 def dailygain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
 	pool = Pool(len(stocks))
@@ -608,7 +535,6 @@ def dailygain():
 		printstock(stock[0])	
 	np.save('last.npy', last)
 	printtotal()
-	checktargets()
 
 if args.repeat:
 	interval=(60*int(args.repeat[0]))
