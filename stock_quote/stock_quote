@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.5"
+version = "1.9.6"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -40,6 +40,7 @@ parser.add_argument("-cv","--chart_value", help="display the value of the portfo
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
 parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
+parser.add_argument("-f","--fundamentals", help="get target price, upside, P/E and 52 week Highs & Lows",action="store_true")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
@@ -200,6 +201,9 @@ def removestocks(sym):
 	if sym in last:
 		del last[sym]
 		np.save('last.npy', last)
+	if sym in target:
+		del target[sym]
+		np.save('target', target)
 	return
 
 # get current price
@@ -610,6 +614,58 @@ def dailygain():
 	printtotal()
 	checktargets()
 
+def fundamentals():
+	print("updating fundamentals for " + (str(len(stocks))) + " stocks ...")
+	os.system('clear')
+	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
+	for symbol in sorted(stocks.keys()):
+		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
+		r = requests.get(url).text
+		for line in r.split('\n'):
+			if re.search('consensus price target of', line):
+				found=str(line)
+				th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
+				#update targets
+				if symbol in target:
+					tl=float(target[symbol][1])
+				else:
+					tl=0
+				t=th,tl
+				target.update({symbol:t})
+				np.save('target.npy', target)
+				break
+			else:
+				th='N/A'
+		try:
+			url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+			r = requests.get(url)
+		except requests.exceptions.RequestException as e:
+			print('http timeout getting ' + symbol)
+			sys.exit(1)
+		if r.status_code == 404:
+			print(symbol + ' is unknown')	
+			sys.exit(1)
+		r = json.dumps(r.json())
+		r = json.loads(r)
+		price = (r['iexRealtimePrice'])
+		if (price) == None or (price) == 0:
+			price = (r['latestPrice'])
+		if (price) == None or (price) == 0:
+			price = (r['previousClose'])
+		if (type(th) == float):
+			upside=round(th/price, 4)
+		else:
+			upside='N/A'
+		pe = str(r['peRatio'])
+		high52 = str(r['week52High'])
+		low52 = str(r['week52Low'])
+		url = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+		r = requests.get(url)
+		r = json.dumps(r.json())
+		r = json.loads(r)
+		Yield =(round(r[symbol]['stats']['dividendYield'],4))
+		print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52))
+
 if args.repeat:
 	interval=(60*int(args.repeat[0]))
 	while True:
@@ -629,6 +685,8 @@ elif args.offline:
 
 elif args.costs:
 	costs()	
+elif args.fundamentals:
+	fundamentals()
 
 elif args.dailygain:
 	dailygain()
