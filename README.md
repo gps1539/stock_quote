@@ -5,39 +5,46 @@ stock quote is a python script for getting stock quotes, news, calculating gains
 
 ## Usage
 ```
-usage: stock_quote [-h] [-a ADD [ADD ...]] [-c]
+usage: stock_quote [-h] [-a ADD [ADD ...]] [-c] [-ca CASH [CASH ...]]
                    [-com COMPANY [COMPANY ...]]
                    [-cd CHART_DAY [CHART_DAY ...]] [-ch]
-                   [-cy CHART_YEAR [CHART_YEAR ...]]
-                   [-d DELETE [DELETE ...]]
-                   [-div DIVIDENDS [DIVIDENDS ...]]
-                   [-e EARNINGS [EARNINGS ...]] [-g] [-G]
+                   [-cp COMPARE [COMPARE ...]]
+                   [-cl CHART_LONG [CHART_LONG ...]] [-cv]
+                   [-d DELETE [DELETE ...]] [-div DIVIDENDS [DIVIDENDS ...]]
+                   [-e EARNINGS [EARNINGS ...]] [-f] [-g] [-G]
                    [-i INFLUX [INFLUX ...]] [-k KEY [KEY ...]]
                    [-n NEWS [NEWS ...]] [-o] [-p PORTFOLIO]
                    [-q QUOTE [QUOTE ...]] [-R READ [READ ...]]
                    [-r REPEAT [REPEAT ...]] [-s STATS [STATS ...]]
-                   [-v]
+                   [-t TARGET [TARGET ...]] [-v]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -a ADD [ADD ...], --add ADD [ADD ...]
-                        add a symbol, the quantity held and the price
-                        paid
-  -c, --costs           displays cost, quantity and price paid
+                        add a symbol, the quantity held and the price paid
+  -c, --costs           displays cost, quantity, price paid and target prices
+  -ca CASH [CASH ...], --cash CASH [CASH ...]
+                        add an amount of cash held in the portfolio
   -com COMPANY [COMPANY ...], --company COMPANY [COMPANY ...]
                         get the company details for stock
   -cd CHART_DAY [CHART_DAY ...], --chart_day CHART_DAY [CHART_DAY ...]
                         display a intra day chart for symbol(s)
   -ch, --chart_holdings
                         display a pie chart of current holdings
-  -cy CHART_YEAR [CHART_YEAR ...], --chart_year CHART_YEAR [CHART_YEAR ...]
-                        display a 12m chart for a symbol(s)
+  -cp COMPARE [COMPARE ...], --compare COMPARE [COMPARE ...]
+                        display changes over time period for symbols. 1st
+                        argument must be 1m, 3m, 6m or 1y
+  -cl CHART_LONG [CHART_LONG ...], --chart_long CHART_LONG [CHART_LONG ...]
+                        display price of symbol(s) over a time period. 1st
+                        argument must be 1m, 3m, 6m or 1y
+  -cv, --chart_value    display the value of the portfolio over time
   -d DELETE [DELETE ...], --delete DELETE [DELETE ...]
                         delete a symbol
   -div DIVIDENDS [DIVIDENDS ...], --dividends DIVIDENDS [DIVIDENDS ...]
                         get the next dividend data for a stock
   -e EARNINGS [EARNINGS ...], --earnings EARNINGS [EARNINGS ...]
                         get earnings actual v estimate for a stock
+  -f, --fundamentals    get target price, upside, P/E and 52 week Highs & Lows
   -g, --dailygain       display stocks by today's gainers and losers
   -G, --totalgain       display stocks by total gainers and losers
   -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
@@ -45,20 +52,20 @@ optional arguments:
   -k KEY [KEY ...], --key KEY [KEY ...]
                         add an api key, see https://iexcloud.io
   -n NEWS [NEWS ...], --news NEWS [NEWS ...]
-                        opens news page(s) for symbols in your
-                        browser
+                        opens news page(s) for symbols in your browser
   -o, --offline         displays last downloaded data
   -p PORTFOLIO, --portfolio PORTFOLIO
                         choose a portfolio
   -q QUOTE [QUOTE ...], --quote QUOTE [QUOTE ...]
                         gets quote for single stock
   -R READ [READ ...], --read READ [READ ...]
-                        inport from a csv file
-                        (symbol,quantity,price)
+                        import from a csv file (symbol,quantity,price)
   -r REPEAT [REPEAT ...], --repeat REPEAT [REPEAT ...]
                         pull data every N minutes
   -s STATS [STATS ...], --stats STATS [STATS ...]
                         gets stats for single stock
+  -t TARGET [TARGET ...], --target TARGET [TARGET ...]
+                        set a high and low target price for a symbol
   -v, --version         print the version and exit
 
 ```
