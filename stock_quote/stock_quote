@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.6"
+version = "1.9.7"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -615,8 +615,6 @@ def dailygain():
 	checktargets()
 
 def fundamentals():
-	print("updating fundamentals for " + (str(len(stocks))) + " stocks ...")
-	os.system('clear')
 	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
