@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "1.9.7"
+version = "2.0.0"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -31,25 +31,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a","--add", nargs='+', help="add a symbol, the quantity held and the price paid")
 parser.add_argument("-c","--costs", help="displays cost, quantity, price paid and target prices",action="store_true")
 parser.add_argument("-ca","--cash", nargs='+', help="add an amount of cash held in the portfolio")
-parser.add_argument("-com","--company", nargs='+', help="get the company details for stock")
-parser.add_argument("-cd","--chart_day", nargs='+', help="display a intra day chart for symbol(s)")
 parser.add_argument("-ch","--chart_holdings", help="display a pie chart of current holdings",action="store_true")
-parser.add_argument("-cp","--compare", nargs='+', help="display changes over time period for symbols. 1st argument must be 1m, 3m, 6m or 1y")
-parser.add_argument("-cl","--chart_long", nargs='+', help="display price of symbol(s) over a time period. 1st argument must be 1m, 3m, 6m or 1y")
 parser.add_argument("-cv","--chart_value", help="display the value of the portfolio over time",action="store_true")
 parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
-parser.add_argument("-div","--dividends", nargs='+', help="get the next dividend data for a stock")
-parser.add_argument("-e","--earnings", nargs='+', help="get earnings actual v estimate for a stock")
 parser.add_argument("-f","--fundamentals", help="get target price, upside, P/E and 52 week Highs & Lows",action="store_true")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
 parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
-parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://iexcloud.io")
+parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://www.alphavantage.co/")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
 parser.add_argument("-q","--quote", nargs='+', help="gets quote for single stock")
-parser.add_argument("-R","--read", nargs='+', help="import from a csv file (symbol,quantity,price)")
 parser.add_argument("-r","--repeat", nargs='+', help="pull data every N minutes")
 parser.add_argument("-s","--stats", nargs='+', help="gets stats for single stock")
 parser.add_argument("-t","--target", nargs='+', help="set a high and low target price for a symbol")
@@ -80,11 +73,6 @@ if args.news:
 			webbrowser.open('https://seekingalpha.com/symbol/'+symbol, new=2)
 		sys.exit(1)
 
-if args.read:
-	if len(args.read)!=1:
-		print('a csv filename is required with --read')
-		sys.exit(1)
-
 if args.repeat:
 	if len(args.repeat)!=1:
 		print('Number of Minutes is required with --repeat')
@@ -108,7 +96,7 @@ if args.version:
 if args.key:
 	apikey=str(args.key[0])
 	print("Testing key " + apikey)
-	url = "https://cloud.iexapis.com/stable/stock/aapl/quote?token="+apikey
+	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey="+apikey
 	response = (requests.get(url))
 	print(response)
 	if (response.status_code) == 200:
@@ -169,13 +157,15 @@ def callurl(url):
 
 # function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price):
-	url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol="+symbol+"&apikey="+key
 	try:
 		r = requests.get(url)
 	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
-	if r.status_code == 404:
+	r = json.dumps(r.json())
+	r = json.loads(r)	
+	if (len(r['Global Quote'])) == 0:
 		print(symbol + ' is unknown')
 		sys.exit(1)
 	paid=float(qtn*price)
@@ -209,37 +199,66 @@ def removestocks(sym):
 # get current price
 def getprice(symbol):
 	try:
-		url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url)
 		if (r.status_code) != 200:
 			time.sleep(1)
 			r = requests.get(url)
-		r = json.dumps(r.json())
-		r = json.loads(r)
-		price = (r['iexRealtimePrice'])
-		if (price) == None or (price) == 0:
-			price = (r['latestPrice'])
-			if (price) == None or (price) == 0:
-				price = (r['delayedPrice'])
-				if (price) == None or (price) == 0:
-					return
-		prev = (r['previousClose'])
-		if r['change'] == None :
-			change = '0'
-		else :
-			change = str(round(r['change'],2))
-		if r['changePercent'] == None :
-			percent = '0'
-		else :
-			percent = str(round(float(r['changePercent']*100),2))
+		r = r.text
+		for line in r.split('\n'):
+			if re.search('<div class="price">', line):
+				found=str(line)
+				price = float((((found.split('<div class="price">', 1)[1]).split('>')[1]).split('<')[0]).replace('$', '').replace(',',''))
+				change = float(found.split('<div class="price">', 1)[1].split('&')[0].split('"> ')[1])
+				percent = found.split('<div class="price">', 1)[1].split('&nbsp;')[1].split('%')[0].split('(')[1]
+		prev = (price - change)
+		change = str(change)
 		gain = str(round(((float(price)/float(prev))-1)*100,2))
-		price = str(round(price,2))
+
 		totalgain = (str(round(((stocks[symbol])*(float(last[symbol][0]))) - (cost[symbol]))))
 		last.update({symbol:[price,change,percent,gain,totalgain]})
 
 	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
 		return
+
+def getfundamentals(symbol):
+	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
+	r = requests.get(url).text
+	for line in r.split('\n'):
+		if re.search('consensus price target of', line):
+			found=str(line)
+			th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
+			if symbol in target:
+				tl=float(target[symbol][1])
+			else:
+				tl=0
+			t=th,tl
+			target.update({symbol:t})
+			np.save('target.npy', target)
+			break
+		else:
+			th='N/A'
+
+	for line in r.split('\n'):
+		if re.search('<div class="price">', line):
+			found=str(line)
+			price = float(found.split('<div class="price">', 1)[1].split('>')[1].split('<')[0].replace('$', '').replace(',',''))
+
+	if (type(th) == float):
+		upside=round(th/price, 4)
+	else:
+		upside='N/A'
+
+	for line in r.split('\n'):
+		if re.search('<dl class="price-data-col col-37">', line):
+			found=str(line)
+			pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
+			high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0]
+			low52 = found.split('52-Week Range')[1].split("range-meter'>$")[1].split('<')[0]
+			Yield = found.split('Yield</dt><dd><strong>')[1].split('<')[0]
+
+	print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52))
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
@@ -339,65 +358,6 @@ if args.target:
 		sys.exit(1)
 	sys.exit(1)
 
-if args.chart_long or args.compare:
-	fig = plot.Figure()
-	if args.compare:
-		args.chart_long = args.compare
-
-	if (args.chart_long[0]) != '1m' and (args.chart_long[0]) != '3m' and (args.chart_long[0]) != '6m' and (args.chart_long[0]) != '1y':
-		print("First argument for chart_long or compare must be a time period of 1m, 3m, 6m or 1y")
-		sys.exit(1)
-	else:
-		period=(args.chart_long[0])
-
-	for r in range (1, len(args.chart_long)):
-		symbol=str(args.chart_long[r])
-		print(symbol)
-		try:
-			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/chart/"+period+"?&format=csv&token="+key
-			# Load data
-			df = pd.read_csv(charturl)
-
-		except:
-			print("Stock not found")
-			sys.exit(1)
-
-		# Build figure
-		if args.compare:
-			fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.changeOverTime), showlegend=True, name=symbol, connectgaps=True))
-		else:
-			fig.add_trace(plot.Scatter(x=list(df.date), y=list(df.close), showlegend=True, name=symbol, connectgaps=True))
-
-	# Set title
-	if args.compare:
-		fig.update_layout(template='simple_white',title_text="Compare stock price change over time")
-	else:
-		fig.update_layout(template='simple_white',title_text="Stock price over time")
-
-	# Add range slider
-	fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))
-	fig.show()
-
-
-if args.chart_day:
-	fig = plot.Figure()
-	for r in range (0, len(args.chart_day)):
-		symbol=str(args.chart_day[r])
-		try:
-			charturl = "https://cloud.iexapis.com/stable/stock/"+symbol+"/intraday-prices/chartIEXOnly?&format=csv&token="+key
-			# Load data
-			df = pd.read_csv(charturl)
-		except:
-			print("Stock not found")
-			sys.exit(1)
-
-		# Build figure
-		fig.add_trace(plot.Scatter(x=list(df.minute), y=list(df.close), showlegend=True, name=symbol, connectgaps=True))
-
-	# Set title
-	fig.update_layout(template='simple_white', title_text="Stock price over day")
-	fig.show()
-
 if args.chart_holdings:
 	holdings = {}
 	for symbol in sorted(stocks.keys()):
@@ -427,32 +387,26 @@ if args.chart_value:
 
 if args.quote:
 	symbol=str(args.quote[0])
-	try:
-		url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
+	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
+
+	r = requests.get(url)
+	if (r.status_code) != 200:
+		time.sleep(1)
 		r = requests.get(url)
-	except requests.exceptions.RequestException as e:
-		print('http timeout getting ' + symbol)
-		sys.exit(1)
-	if r.status_code == 404:
-		print(symbol + ' is unknown')
-		sys.exit(1)
-	r = json.dumps(r.json())
-	r = json.loads(r)
-	price = (r['iexRealtimePrice'])
-	if (price) == None or (price) == 0:
-		price = (r['latestPrice'])
-		if (price) == None or (price) == 0:
-			price = (r['previousClose'])
-	prev = float(r['previousClose'])
-	pe = str(r['peRatio'])
-	bid = str(r['iexBidPrice'])
-	ask = str(r['iexAskPrice'])
-	high52 = str(r['week52High'])
-	low52 = str(r['week52Low'])
-	volume = str(r['iexVolume'])
-	cap = str(r['marketCap'])
-	name = str(r['companyName'])
-	change = str(r['change'])
+	r = r.text
+	for line in r.split('\n'):
+		if re.search('<div class="price">', line):
+			found=str(line)
+			price = found.split('<div class="price">', 1)[1].split('>')[1].split('<')[0].replace('$', '')
+			change = found.split('<div class="price">', 1)[1].split('&')[0].split('"> ')[1]
+			percent = found.split('<div class="price">', 1)[1].split('&nbsp;')[1].split('%')[0].split('(')[1]
+	
+	for line in r.split('\n'):
+		if re.search('<dl class="price-data-col col-37">', line):
+			found=str(line)
+			pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
+			high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0]
+			low52 = found.split('52-Week Range')[1].split("range-meter'>$")[1].split('<')[0]
 
 	if (change[0])=='-':
 		change=(Fore.RED + str(change))
@@ -460,62 +414,19 @@ if args.quote:
 		change=(Fore.GREEN + str(change))
 
 	print ()
-	print ('Symbol       : ' + (symbol) + ' : ' + (name))
+	print (symbol)
 	print ('Price        : ' + (str(price)))
 	print ('Change       : ' + (change) + Style.RESET_ALL)
 	print ('PE ratio     : ' + (pe))
-	print ('Bid Price    : ' + (bid))
-	print ('Ask Price    : ' + (ask))
 	print ('52 week high : ' + (high52))
 	print ('52 week low  : ' + (low52))
-	print ('Volume       : ' + (volume))
-	print ('Market cap   : ' + (cap))
 	if not args.stats:
 		sys.exit(1)
 
 if args.stats:
 	symbol=str(args.stats[0])
-	url = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
+	url = "https://www.alphavantage.co/query?function=OVERVIEW&symbol="+symbol+"&apikey="+key
 	callurl(url)
-
-if args.company:
-	symbol=str(args.company[0])
-	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/company?token="+key
-	callurl(url)
-
-if args.dividends:
-	symbol=str(args.dividends[0])
-	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/dividends/next?token="+key
-	callurl(url)
-
-if args.earnings:
-	symbol=str(args.earnings[0])
-	url = "https://cloud.iexapis.com/beta/stock/"+symbol+"/earnings/last?token="+key
-	callurl(url)
-
-# read csv file that was downloaded from google finance
-if args.read:
-	a=(args.read[0])
-	with open(a) as file:
-		next(file)
-		for line in file:
-			if (line[0]) == ",":
-				next(file)
-			else:
-				currentline = line.split(",")
-				if (currentline[1][0]) == '.':
-					next(file)
-				else:
-					if (currentline[1][-1]) == '"':
-						sym=str(currentline[1])
-						qtn=float(currentline[2])
-						price=(float(currentline[3]))/(float(currentline[2]))
-					else:
-						sym=str(currentline[0])
-						qtn=float(currentline[1])
-						price=(float(currentline[2]))/(float(currentline[1]))
-			inputtostocks(sym,qtn,price)
-		sys.exit(1)
 
 # call removestocks if --delete option on command line      
 if args.delete:
@@ -593,6 +504,11 @@ def online():
 	printtotal()
 	checktargets()
 
+def fundamentals():
+	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
+	pool = Pool(len(stocks))
+	pool.map(getfundamentals, stocks.keys())	
+
 def totalgain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
 	pool = Pool(len(stocks))
@@ -614,56 +530,6 @@ def dailygain():
 	printtotal()
 	checktargets()
 
-def fundamentals():
-	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
-	for symbol in sorted(stocks.keys()):
-		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
-		r = requests.get(url).text
-		for line in r.split('\n'):
-			if re.search('consensus price target of', line):
-				found=str(line)
-				th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
-				#update targets
-				if symbol in target:
-					tl=float(target[symbol][1])
-				else:
-					tl=0
-				t=th,tl
-				target.update({symbol:t})
-				np.save('target.npy', target)
-				break
-			else:
-				th='N/A'
-		try:
-			url = "https://cloud.iexapis.com/stable/stock/"+symbol+"/quote?token="+key
-			r = requests.get(url)
-		except requests.exceptions.RequestException as e:
-			print('http timeout getting ' + symbol)
-			sys.exit(1)
-		if r.status_code == 404:
-			print(symbol + ' is unknown')	
-			sys.exit(1)
-		r = json.dumps(r.json())
-		r = json.loads(r)
-		price = (r['iexRealtimePrice'])
-		if (price) == None or (price) == 0:
-			price = (r['latestPrice'])
-		if (price) == None or (price) == 0:
-			price = (r['previousClose'])
-		if (type(th) == float):
-			upside=round(th/price, 4)
-		else:
-			upside='N/A'
-		pe = str(r['peRatio'])
-		high52 = str(r['week52High'])
-		low52 = str(r['week52Low'])
-		url = "https://cloud.iexapis.com/beta/stock/market/batch?symbols="+symbol+"&types=stats&token="+key
-		r = requests.get(url)
-		r = json.dumps(r.json())
-		r = json.loads(r)
-		Yield =(round(r[symbol]['stats']['dividendYield'],4))
-		print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52))
-
 if args.repeat:
 	interval=(60*int(args.repeat[0]))
 	while True:
@@ -677,20 +543,15 @@ if args.repeat:
 
 elif args.influx:
 	influx()
-
 elif args.offline:
 	offline()
-
 elif args.costs:
 	costs()	
 elif args.fundamentals:
 	fundamentals()
-
 elif args.dailygain:
 	dailygain()
-
 elif args.totalgain:
 	totalgain()
-
 else:
 	online()
