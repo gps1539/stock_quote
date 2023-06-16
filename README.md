@@ -52,6 +52,6 @@ An API key is required, create an account at www.alphavantage.co, find your API 
  
 When adding the stock symbol, quantity and price are required
 
-Allows multiple portfolios to be created and used. They are created as directories under user's home directory. Program will create 3 files in each portfolio directory to store portfolio info (cost.npy, last.npy and stocks.npy)
+Allows multiple portfolios to be created and used. They are created as directories under user's home directory. Program will create 6 files in each portfolio directory to store portfolio info (cost.npy  key.npy  last.npy  stocks.npy  target.npy  value.npy)
 
 When using --influx, influxdb should be running on the target server and you must have a valid user and passwd. Graphs can be created using grafana (and other tools) by using influxdb as a datasource.
