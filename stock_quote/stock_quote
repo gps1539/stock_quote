@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.0"
+version = "2.0.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -222,43 +222,48 @@ def getprice(symbol):
 		print('http timeout getting ' + symbol)
 		return
 
-def getfundamentals(symbol):
-	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
-	r = requests.get(url).text
-	for line in r.split('\n'):
-		if re.search('consensus price target of', line):
-			found=str(line)
-			th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
-			if symbol in target:
-				tl=float(target[symbol][1])
+def fundamentals():
+	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
+	for symbol in sorted(stocks.keys()):
+		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
+		r = requests.get(url).text
+		for line in r.split('\n'):
+			if re.search('consensus price target of', line):
+				found=str(line)
+				th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
+				if symbol in target:
+					tl=float(target[symbol][1])
+				else:
+					tl=0
+				t=th,tl
+				target.update({symbol:t})
+				np.save('target.npy', target)
+				break
 			else:
-				tl=0
-			t=th,tl
-			target.update({symbol:t})
-			np.save('target.npy', target)
-			break
+				th='N/A'
+
+		for line in r.split('\n'):
+			if re.search('<div class="price">', line):
+				found=str(line)
+				price = float(found.split('<div class="price">', 1)[1].split('>')[1].split('<')[0].replace('$', '').replace(',',''))
+
+		if (type(th) == float):
+			upside=round(th/price, 4)
 		else:
-			th='N/A'
+			upside='N/A'
+	
+		for line in r.split('\n'):
+			if re.search('<dl class="price-data-col col-37">', line):
+				found=str(line)
+				if re.search('P/E Ratio</dt><dd><strong>', found):
+					pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
+				else:
+					pe = 'N/A'
+				high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0].replace(',','')
+				low52 = found.split('52-Week Range')[1].split("range-meter'>$")[1].split('<')[0].replace(',','')
+				Yield = found.split('Yield</dt><dd><strong>')[1].split('<')[0]
 
-	for line in r.split('\n'):
-		if re.search('<div class="price">', line):
-			found=str(line)
-			price = float(found.split('<div class="price">', 1)[1].split('>')[1].split('<')[0].replace('$', '').replace(',',''))
-
-	if (type(th) == float):
-		upside=round(th/price, 4)
-	else:
-		upside='N/A'
-
-	for line in r.split('\n'):
-		if re.search('<dl class="price-data-col col-37">', line):
-			found=str(line)
-			pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
-			high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0]
-			low52 = found.split('52-Week Range')[1].split("range-meter'>$")[1].split('<')[0]
-			Yield = found.split('Yield</dt><dd><strong>')[1].split('<')[0]
-
-	print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52))
+		print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52), sep='\n')
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
@@ -503,11 +508,6 @@ def online():
 	np.save('last.npy', last)
 	printtotal()
 	checktargets()
-
-def fundamentals():
-	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
-	pool = Pool(len(stocks))
-	pool.map(getfundamentals, stocks.keys())	
 
 def totalgain():
 	print("fetching data for " + (str(len(stocks))) + " stocks ...")
