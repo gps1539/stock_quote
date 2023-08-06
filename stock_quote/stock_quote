@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.1"
+version = "2.0.2"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -260,7 +260,8 @@ def fundamentals():
 				else:
 					pe = 'N/A'
 				high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0].replace(',','')
-				low52 = found.split('52-Week Range')[1].split("range-meter'>$")[1].split('<')[0].replace(',','')
+				low52 = found.split('52-Week Range')[1].split('>$')[1].split('<')[0].replace(',','')
+
 				Yield = found.split('Yield</dt><dd><strong>')[1].split('<')[0]
 
 		print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52), sep='\n')
