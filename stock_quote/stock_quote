@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.3"
+version = "2.0.5"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -104,7 +104,7 @@ if args.key:
 		np.save('key.npy', apikey)
 		sys.exit(1)
 	else:		
-		print('failed, please get a valid key from https://iexcloud.io')
+		print('failed, please get a valid key from https://www.alphavantage.co')
 		sys.exit(1)
 if args.cash:
 	if len(args.cash)!=1:
@@ -223,10 +223,11 @@ def getprice(symbol):
 		return
 
 def fundamentals():
-	print('{:<10}'.format ('Symbol') + '{:<10}'.format ('Price') + '{:<10}'.format ('Target') + '{:<10}'.format ('Upside') + '{:<10}'.format ('P/E') + '{:<10}'.format ('Yield') + '{:<10}'.format ('High52') + '{:<10}'.format ('Low52'))
+	print('{:<8}'.format ('Symbol') + '{:<9}'.format ('Price') + '{:<9}'.format ('Target') + '{:<9}'.format ('Upside') + '{:<8}'.format ('P/E') + '{:<8}'.format ('Yield') + '{:<9}'.format ('High52') + '{:<9}'.format ('Low52') + '{:<9}'.format ('Earnings'))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
+
 		for line in r.split('\n'):
 			if re.search('consensus price target of', line):
 				found=str(line)
@@ -246,7 +247,8 @@ def fundamentals():
 			if re.search('<div class="price">', line):
 				found=str(line)
 				price = float(found.split('<div class="price">', 1)[1].split('>')[1].split('<')[0].replace('$', '').replace(',',''))
-
+				break
+				
 		if (type(th) == float):
 			upside=round(th/price, 4)
 		else:
@@ -263,8 +265,17 @@ def fundamentals():
 				low52 = found.split('52-Week Range')[1].split('>$')[1].split('<')[0].replace(',','')
 
 				Yield = found.split('Yield</dt><dd><strong>')[1].split('<')[0]
+				break
 
-		print('{:<10}'.format (symbol) + '{:<10}'.format (price) + '{:<10}'.format (th) + '{:<10}'.format (upside) + '{:<10}'.format (pe) + '{:<10}'.format (Yield) + '{:<10}'.format (high52) + '{:<10}'.format (low52), sep='\n')
+		for line in r.split('\n'):
+			if re.search('<dt>Next Earnings', line):
+				found=str(line)
+				next_earnings = found.split('<dt>Next Earnings')[1].split('<strong>')[1].split('</strong>')[0]
+				break
+			else:
+				next_earnings = 'N/A'
+
+		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + '{:<9}'.format (th) + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (next_earnings), sep='\n')
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
