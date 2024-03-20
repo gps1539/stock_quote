@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.5"
+version = "2.0.6"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -232,6 +232,8 @@ def fundamentals():
 			if re.search('consensus price target of', line):
 				found=str(line)
 				th=float(((found.split('consensus price target of ', 1)[1]).split(' ')[0]).replace(',', '').replace('$', ''))
+				tp=(target[symbol][0])
+
 				if symbol in target:
 					tl=float(target[symbol][1])
 				else:
@@ -275,7 +277,14 @@ def fundamentals():
 			else:
 				next_earnings = 'N/A'
 
-		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + '{:<9}'.format (th) + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (next_earnings), sep='\n')
+				if th > tp:
+					col=(Fore.GREEN)
+				elif th < tp:
+					col=(Fore.RED)
+				else:
+					col=(Style.RESET_ALL)
+
+		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + col + '{:<9}'.format (th) + Style.RESET_ALL + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (next_earnings), sep='\n')
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
