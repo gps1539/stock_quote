@@ -277,12 +277,16 @@ def fundamentals():
 			else:
 				next_earnings = 'N/A'
 
-				if th > tp:
-					col=(Fore.GREEN)
-				elif th < tp:
-					col=(Fore.RED)
-				else:
-					col=(Style.RESET_ALL)
+			col=(Style.RESET_ALL)
+
+			if 'tp' in locals():
+				if isinstance(tp, float) and isinstance(th, float):
+					if th > tp:
+						col=(Fore.GREEN)
+					elif th < tp:
+						col=(Fore.RED)
+					else:
+						col=(Style.RESET_ALL)
 
 		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + col + '{:<9}'.format (th) + Style.RESET_ALL + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (next_earnings), sep='\n')
 
