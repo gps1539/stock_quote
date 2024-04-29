@@ -7,7 +7,7 @@ import requests
 import numpy as np
 import argparse
 from colorama import init, Fore, Back, Style
-from influxdb import InfluxDBClient
+#from influxdb import InfluxDBClient
 import time
 import datetime
 import webbrowser
@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.7"
+version = "2.0.8"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -37,7 +37,7 @@ parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-f","--fundamentals", help="get target price, upside, P/E and 52 week Highs & Lows",action="store_true")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
-parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
+#parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://www.alphavantage.co/")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
@@ -59,10 +59,10 @@ if args.delete:
 		print('a symbol is required with --delete')
 		sys.exit(1)
 
-if args.influx:
-	if len(args.influx)!=4:
-		print('The influxdb server, port #, user and password are required with --influx')
-		sys.exit(1)
+#if args.influx:
+#	if len(args.influx)!=4:
+#		print('The influxdb server, port #, user and password are required with --influx')
+#		sys.exit(1)
 
 if args.news:
 	if len(args.news)<1:
@@ -472,43 +472,43 @@ if len(stocks)==0:
 
 # operation modes
 
-def influx():
-	server=str(args.influx[0])
-	port=int(args.influx[1])
-	user=str(args.influx[2])
-	password=str(args.influx[3])
-	metric = "Stocks"
-	database = "stock_quote"
-	series = []
-	if args.portfolio:
-		database=str(args.portfolio)		
+#def influx():
+#	server=str(args.influx[0])
+#	port=int(args.influx[1])
+#	user=str(args.influx[2])
+#	password=str(args.influx[3])
+#	metric = "Stocks"
+#	database = "stock_quote"
+#	series = []
+#	if args.portfolio:
+#		database=str(args.portfolio)		
 
 # Call getprice to update data
-	pool = Pool(len(stocks))
-	pool.map(getprice, stocks.keys())
+#	pool = Pool(len(stocks))
+#	pool.map(getprice, stocks.keys())
 
-	for symbol in sorted(stocks.keys()):
-		s=(float(last[symbol][0])) #current price
-		change=(float(last[symbol][1]))
-		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
-		gain=(round(value-(cost[symbol]),2))
-		pointValues = {
-			"time": datetime.datetime.today(),
-	       	        "measurement": metric,
-        	        'fields':  {
-				'price': s,
-				'change' : change,
-				'value': value,
-				'gain' : gain,
-        	        },
-        	        'tags': {
-				"Stock": symbol,
-        	        },
-        	    }
-		series.append(pointValues)
-	client = InfluxDBClient(server, port, user, password, database)
-	client.create_database(database)
-	client.write_points(series)
+#	for symbol in sorted(stocks.keys()):
+#		s=(float(last[symbol][0])) #current price
+#		change=(float(last[symbol][1]))
+#		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
+#		gain=(round(value-(cost[symbol]),2))
+#		pointValues = {
+#			"time": datetime.datetime.today(),
+#	       	        "measurement": metric,
+ #       	        'fields':  {
+#				'price': s,
+#				'change' : change,
+#				'value': value,
+#				'gain' : gain,
+ #       	        },
+  #      	        'tags': {
+#				"Stock": symbol,
+ #       	        },
+  #      	    }
+#		series.append(pointValues)
+#	client = InfluxDBClient(server, port, user, password, database)
+#	client.create_database(database)
+#	client.write_points(series)
 
 def offline():
 	os.system('clear')
@@ -567,8 +567,8 @@ if args.repeat:
 			online()
 		time.sleep(interval)
 
-elif args.influx:
-	influx()
+#elif args.influx:
+#	influx()
 elif args.offline:
 	offline()
 elif args.costs:
