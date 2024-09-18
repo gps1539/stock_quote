@@ -21,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.9"
+version = "2.0.10"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -227,10 +227,11 @@ def fundamentals():
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
-
+	
 		for line in r.split('\n'):
 			if re.search('Average Stock Price Target', line):
 				found=str(line)
+
 				th=float(((found.split('Average Stock Price Target', 1)[1]).split(symbol+'/forecast/">$')[1]).split('<')[0].replace(',', ''))
 
 				if symbol in target:
@@ -258,12 +259,17 @@ def fundamentals():
 			upside='N/A'
 	
 		for line in r.split('\n'):
-			if re.search('<dl class="price-data-col col-37">', line):
+			if re.search('Trailing', line):
 				found=str(line)
-				if re.search('P/E Ratio</dt><dd><strong>', found):
-					pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
+				if re.search('Trailing P/E Ratio', found):
+					pe = found.split('Trailing P/E Ratio</a></dt><dd class="m-0"><strong>')[1].split('<')[0]
 				else:
 					pe = 'N/A'
+				break
+				
+		for line in r.split('\n'):
+			if re.search('52-Week Range', line):
+				found=str(line)		
 				high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0].replace(',','')
 				low52 = found.split('52-Week Range')[1].split('>$')[1].split('<')[0].replace(',','')
 
