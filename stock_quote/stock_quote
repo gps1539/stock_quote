@@ -7,7 +7,6 @@ import requests
 import numpy as np
 import argparse
 from colorama import init, Fore, Back, Style
-#from influxdb import InfluxDBClient
 import time
 import datetime
 import webbrowser
@@ -21,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.10"
+version = "2.0.11"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -58,11 +57,6 @@ if args.delete:
 	if len(args.delete)!=1:
 		print('a symbol is required with --delete')
 		sys.exit(1)
-
-#if args.influx:
-#	if len(args.influx)!=4:
-#		print('The influxdb server, port #, user and password are required with --influx')
-#		sys.exit(1)
 
 if args.news:
 	if len(args.news)<1:
@@ -222,6 +216,7 @@ def getprice(symbol):
 		print('http timeout getting ' + symbol)
 		return
 
+# get fundamentals for stocks
 def fundamentals():
 	print('{:<8}'.format ('Symbol') + '{:<9}'.format ('Price') + '{:<9}'.format ('Target') + '{:<9}'.format ('Upside') + '{:<8}'.format ('P/E') + '{:<8}'.format ('Yield') + '{:<9}'.format ('High52') + '{:<9}'.format ('Low52') + '{:<9}'.format ('Earnings'))
 	for symbol in sorted(stocks.keys()):
@@ -476,46 +471,6 @@ if len(stocks)==0:
 	print('Please input stocks with --add')
 	sys.exit(1)
 
-# operation modes
-
-#def influx():
-#	server=str(args.influx[0])
-#	port=int(args.influx[1])
-#	user=str(args.influx[2])
-#	password=str(args.influx[3])
-#	metric = "Stocks"
-#	database = "stock_quote"
-#	series = []
-#	if args.portfolio:
-#		database=str(args.portfolio)		
-
-# Call getprice to update data
-#	pool = Pool(len(stocks))
-#	pool.map(getprice, stocks.keys())
-
-#	for symbol in sorted(stocks.keys()):
-#		s=(float(last[symbol][0])) #current price
-#		change=(float(last[symbol][1]))
-#		value=(round(float(last[symbol][0])*(stocks[symbol]),2))
-#		gain=(round(value-(cost[symbol]),2))
-#		pointValues = {
-#			"time": datetime.datetime.today(),
-#	       	        "measurement": metric,
- #       	        'fields':  {
-#				'price': s,
-#				'change' : change,
-#				'value': value,
-#				'gain' : gain,
- #       	        },
-  #      	        'tags': {
-#				"Stock": symbol,
- #       	        },
-  #      	    }
-#		series.append(pointValues)
-#	client = InfluxDBClient(server, port, user, password, database)
-#	client.create_database(database)
-#	client.write_points(series)
-
 def offline():
 	os.system('clear')
 	print("Offline Mode")
@@ -573,8 +528,6 @@ if args.repeat:
 			online()
 		time.sleep(interval)
 
-#elif args.influx:
-#	influx()
 elif args.offline:
 	offline()
 elif args.costs:
