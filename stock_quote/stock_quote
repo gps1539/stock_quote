@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.11"
+version = "2.0.12"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -36,7 +36,6 @@ parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-f","--fundamentals", help="get target price, upside, P/E and 52 week Highs & Lows",action="store_true")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
-#parser.add_argument("-i","--influx", nargs='+', help="influx server, port, user and password")
 parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://www.alphavantage.co/")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
@@ -218,11 +217,12 @@ def getprice(symbol):
 
 # get fundamentals for stocks
 def fundamentals():
-	print('{:<8}'.format ('Symbol') + '{:<9}'.format ('Price') + '{:<9}'.format ('Target') + '{:<9}'.format ('Upside') + '{:<8}'.format ('P/E') + '{:<8}'.format ('Yield') + '{:<9}'.format ('High52') + '{:<9}'.format ('Low52') + '{:<9}'.format ('Earnings'))
+	print('{:<8}'.format ('Symbol') + '{:<9}'.format ('Price') + '{:<9}'.format ('Target') + '{:<9}'.format ('Upside') + '{:<8}'.format ('P/E') + '{:<8}'.format ('Yield') + '{:<9}'.format ('High52') + '{:<9}'.format ('Low52') + '{:<9}'.format ('Consensus'))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
-	
+#		print(r)
+
 		for line in r.split('\n'):
 			if re.search('Average Stock Price Target', line):
 				found=str(line)
@@ -272,12 +272,12 @@ def fundamentals():
 				break
 
 		for line in r.split('\n'):
-			if re.search('<dt>Next Earnings', line):
+			if re.search('Consensus', line):
 				found=str(line)
-				next_earnings = found.split('<dt>Next Earnings')[1].split('<strong>')[1].split('</strong>')[0]
+				consensus = found.split('Consensus')[1].split('<strong>')[1].split('</strong>')[0]
 				break
 			else:
-				next_earnings = 'N/A'
+				consensus = 'N/A'
 
 			col=(Style.RESET_ALL)
 
@@ -290,7 +290,7 @@ def fundamentals():
 					else:
 						col=(Style.RESET_ALL)
 
-		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + col + '{:<9}'.format (th) + Style.RESET_ALL + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (next_earnings), sep='\n')
+		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + col + '{:<9}'.format (th) + Style.RESET_ALL + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (consensus), sep='\n')
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
@@ -426,6 +426,7 @@ if args.quote:
 		time.sleep(1)
 		r = requests.get(url)
 	r = r.text
+
 	for line in r.split('\n'):
 		if re.search('<div class="price">', line):
 			found=str(line)
@@ -434,7 +435,7 @@ if args.quote:
 			percent = found.split('<div class="price">', 1)[1].split('&nbsp;')[1].split('%')[0].split('(')[1]
 	
 	for line in r.split('\n'):
-		if re.search('<dl class="price-data-col col-37">', line):
+		if re.search('price-data w-range', line):
 			found=str(line)
 			pe = found.split('P/E Ratio</dt><dd><strong>')[1].split('<')[0]
 			high52 = found.split('52-Week Range')[1].split('</div>$')[1].split('<')[0]
