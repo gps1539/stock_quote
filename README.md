@@ -1,12 +1,12 @@
 ## stock_quote
 
 ## Overview
-stock quote is a python script for getting stock quotes, news, calculating gains and losses and optionally recording to a time series database (influxdb). Usage requires an account (free) from www.alphavantage.co
+stock quote is a python script for getting stock quotes, news, calculating gains and losses. Usage requires an account (free) from www.alphavantage.co
 
 ## Usage
 ```
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-c] [-ca CASH [CASH ...]] [-ch] [-cv]
-                   [-d DELETE [DELETE ...]] [-f] [-g] [-G] [-i INFLUX [INFLUX ...]]
+                   [-d DELETE [DELETE ...]] [-f] [-g] [-G] 
                    [-k KEY [KEY ...]] [-n NEWS [NEWS ...]] [-o] [-p PORTFOLIO]
                    [-q QUOTE [QUOTE ...]] [-r REPEAT [REPEAT ...]] [-s STATS [STATS ...]]
                    [-t TARGET [TARGET ...]] [-v]
@@ -26,8 +26,6 @@ options:
   -f, --fundamentals    get target price, upside, P/E and 52 week Highs & Lows
   -g, --dailygain       display stocks by today's gainers and losers
   -G, --totalgain       display stocks by total gainers and losers
-  -i INFLUX [INFLUX ...], --influx INFLUX [INFLUX ...]
-                        influx server, port, user and password
   -k KEY [KEY ...], --key KEY [KEY ...]
                         add an api key, see https://www.alphavantage.co/
   -n NEWS [NEWS ...], --news NEWS [NEWS ...]
@@ -53,5 +51,3 @@ An API key is required, create an account at www.alphavantage.co, find your API 
 When adding the stock symbol, quantity and price are required
 
 Allows multiple portfolios to be created and used. They are created as directories under user's home directory. Program will create 6 files in each portfolio directory to store portfolio info (cost.npy  key.npy  last.npy  stocks.npy  target.npy  value.npy)
-
-When using --influx, influxdb should be running on the target server and you must have a valid user and passwd. Graphs can be created using grafana (and other tools) by using influxdb as a datasource.
