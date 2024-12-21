@@ -6,10 +6,9 @@ stock quote is a python script for getting stock quotes, news, calculating gains
 ## Usage
 ```
 usage: stock_quote [-h] [-a ADD [ADD ...]] [-c] [-ca CASH [CASH ...]] [-ch] [-cv]
-                   [-d DELETE [DELETE ...]] [-f] [-g] [-G] 
-                   [-k KEY [KEY ...]] [-n NEWS [NEWS ...]] [-o] [-p PORTFOLIO]
-                   [-q QUOTE [QUOTE ...]] [-r REPEAT [REPEAT ...]] [-s STATS [STATS ...]]
-                   [-t TARGET [TARGET ...]] [-v]
+                   [-d DELETE [DELETE ...]] [-f] [-g] [-G] [-k KEY [KEY ...]] [-n NEWS [NEWS ...]]
+                   [-o] [-p PORTFOLIO] [-q QUOTE [QUOTE ...]] [-r REPEAT [REPEAT ...]]
+                   [-s STATS [STATS ...]] [-t TARGET [TARGET ...]] [-v]
 
 options:
   -h, --help            show this help message and exit
