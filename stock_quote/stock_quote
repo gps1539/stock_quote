@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.13"
+version = "2.0.14"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -218,7 +218,7 @@ def getprice(symbol):
 
 # get fundamentals for stocks
 def fundamentals():
-	print('{:<8}'.format ('Symbol') + '{:<9}'.format ('Price') + '{:<9}'.format ('Target') + '{:<9}'.format ('Upside') + '{:<8}'.format ('P/E') + '{:<8}'.format ('Yield') + '{:<9}'.format ('High52') + '{:<9}'.format ('Low52') + '{:<9}'.format ('Consensus'))
+	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Next Earnings'))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
@@ -254,13 +254,11 @@ def fundamentals():
 			upside='N/A'
 	
 		for line in r.split('\n'):
-			if re.search('Trailing', line):
-				found=str(line)
-				if re.search('Trailing P/E Ratio', found):
-					pe = found.split('Trailing P/E Ratio</a></dt><dd class="m-0"><strong>')[1].split('<')[0]
-				else:
-					pe = 'N/A'
+			if re.search('Trailing P/E Ratio', line):
+				pe = line.split('Trailing P/E Ratio</a></dt><dd class="m-0"><strong>')[1].split('<')[0]
 				break
+			else:
+				pe = 'N/A'
 				
 		for line in r.split('\n'):
 			if re.search('52-Week Range', line):
@@ -290,7 +288,17 @@ def fundamentals():
 					else:
 						col=(Style.RESET_ALL)
 
-		print('{:<8}'.format (symbol) + '{:<9}'.format (price) + col + '{:<9}'.format (th) + Style.RESET_ALL + '{:<9}'.format (upside) + '{:<8}'.format (pe) + '{:<8}'.format (Yield) + '{:<9}'.format (high52) + '{:<9}'.format (low52) + '{:<9}'.format (consensus), sep='\n')
+		url = "https://finance.yahoo.com/quote/"+symbol
+		r = requests.get(url).text
+		for line in r.split('\n'):
+			if re.search('"Earnings Date">Earnings Date', line):
+				found=str(line)
+				earnings = found.split('Earnings Date')[2].split(',')[0].split('">')[1]
+				break
+			else:
+				earnings = "N/A"
+
+		print('{:<8}'.format (symbol) + '{:<8}'.format (price) + col + '{:<8}'.format (th) + Style.RESET_ALL + '{:<8}'.format (upside) + '{:<7}'.format (pe) + '{:<7}'.format (Yield) + '{:<8}'.format (high52) + '{:<8}'.format (low52) + '{:<13}'.format (consensus) + '{:<11}'.format (earnings), sep='\n')
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
