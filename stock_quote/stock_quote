@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.14"
+version = "2.0.15"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -289,7 +289,7 @@ def fundamentals():
 						col=(Style.RESET_ALL)
 
 		url = "https://finance.yahoo.com/quote/"+symbol
-		r = requests.get(url).text
+		r = requests.get(url, headers = {'User-agent': 'your bot 0.1'}).text
 		for line in r.split('\n'):
 			if re.search('"Earnings Date">Earnings Date', line):
 				found=str(line)
