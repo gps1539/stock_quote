@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.15"
+version = "2.0.16"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -255,7 +255,7 @@ def fundamentals():
 	
 		for line in r.split('\n'):
 			if re.search('Trailing P/E Ratio', line):
-				pe = line.split('Trailing P/E Ratio</a></dt><dd class="m-0"><strong>')[1].split('<')[0]
+				pe = line.split('Trailing P/E Ratio')[1].split('<strong>')[1].split('</strong>')[0]
 				break
 			else:
 				pe = 'N/A'
