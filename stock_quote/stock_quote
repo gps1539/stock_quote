@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.16"
+version = "2.0.17"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -133,6 +133,7 @@ else:
 Gain={}
 value = cost.copy()
 day = cost.copy()
+nodata=[]
 
 # function to call url
 def callurl(url):
@@ -205,6 +206,11 @@ def getprice(symbol):
 				price = float(found.split('>$',1)[1].split('<')[0].replace(',', ''))
 				change = float(found.split('>')[4].split('&')[0])
 				percent = found.split('>')[4].split('&')[1].split('(')[1].split(')')[0].split('%')[0]
+
+		if 'price' not in locals():
+			nodata.append(symbol)
+			return
+
 		prev = (price - change)
 		change = str(change)
 		gain = str(round(((float(price)/float(prev))-1)*100,2))
@@ -369,6 +375,8 @@ def checktargets():
 				print(key,'is above your target of', float(target[key][0]), 'at', float(last[key][0]))
 			if (float(last[key][0]) < float(target[key][1])):
 				print(key,'is below your target of', float(target[key][1]), 'at', float(last[key][0]))
+				
+	print("No data retrieved for: ",nodata)
 
 if args.add:
 	symbol=str(args.add[0])
@@ -438,9 +446,13 @@ if args.quote:
 		if re.search('price-updated', line):
 			found=str(line)
 			price = found.split('>$',1)[1].split('<')[0].replace(',', '')
-			change = found.split('>')[4].split('&')[0]
+			change = found.split('>')[4].split('&')[0].replace(' ','')
 			percent = (found.split('>')[4].split('&')[1].split('(')[1].split(')')[0])
-	
+
+	if 'price' not in locals():
+		print("Data not found for: ", symbol)
+		sys.exit(1)
+
 	for line in r.split('\n'):
 		if re.search('price-data w-range', line):
 			found=str(line)
