@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.17"
+version = "2.0.18"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -228,7 +228,7 @@ def fundamentals():
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
-
+				
 		for line in r.split('\n'):
 			if re.search('Average Stock Price Target', line):
 				found=str(line)
@@ -253,6 +253,9 @@ def fundamentals():
 				found=str(line)
 				price = float(found.split('>$',1)[1].split('<')[0].replace(',', ''))
 				break
+
+		if 'price' not in locals():
+			continue
 				
 		if (type(th) == float):
 			upside=round(th/price, 4)
@@ -305,6 +308,7 @@ def fundamentals():
 				earnings = "N/A"
 
 		print('{:<8}'.format (symbol) + '{:<8}'.format (price) + col + '{:<8}'.format (th) + Style.RESET_ALL + '{:<8}'.format (upside) + '{:<7}'.format (pe) + '{:<7}'.format (Yield) + '{:<8}'.format (high52) + '{:<8}'.format (low52) + '{:<13}'.format (consensus) + '{:<11}'.format (earnings), sep='\n')
+		del price
 
 def printstock(symbol):
 	if (str((last[symbol][1])[0]))=='-':
