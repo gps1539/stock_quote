@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.18"
+version = "2.0.19"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -419,7 +419,7 @@ if args.chart_holdings:
 	total = str(round(sum(holdings.values()),2))
 	fig = px.pie(df, title='Current holdings $' + total, values='value', names='stock', hole=0.1)
 	fig.update_traces(textposition='inside', textinfo='percent+label')
-	fig.show()
+	fig.show(renderer='browser')
 	sys.exit(1)
 	
 if args.chart_value:
@@ -434,7 +434,7 @@ if args.chart_value:
 		fig.update_layout(template='simple_white', title_text="Portfolio value over time")
 		fig.update_yaxes(title='$ value')
 		fig.update_layout(xaxis=dict(rangeselector=dict(buttons=list([dict(count=1,                 label="1m",step="month",stepmode="backward"),dict(count=6,label="6m",              step="month",stepmode="backward"),dict(count=1,label="YTD",step="year",                   stepmode="todate"),dict(count=1,label="1y",step="year",                     stepmode="backward"),dict(step="all")])),rangeslider=dict(visible=True),type="date"))		
-		fig.show()
+		fig.show(renderer='browser')
 		sys.exit(1)
 
 if args.quote:
