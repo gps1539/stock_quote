@@ -20,7 +20,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.19"
+version = "2.0.20"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -228,23 +228,26 @@ def fundamentals():
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
-				
+
 		for line in r.split('\n'):
-			if re.search('Average Stock Price Target', line):
+			if re.search('>Price Target<', line):
 				found=str(line)
-
-				th=float(((found.split('Average Stock Price Target', 1)[1]).split(symbol+'/forecast/">$')[1]).split('<')[0].replace(',', ''))
-
-				if symbol in target:
-					tp=float(target[symbol][0])
-					tl=float(target[symbol][1])
+				if re.search('N/A', found.split('>Price Target<', 1)[1]):
+					th='N/A'
+			
 				else:
-					tp=0
-					tl=0
-				t=th,tl
-				target.update({symbol:t})
-				np.save('target.npy', target)
-				break
+					th=float(((found.split('>Price Target<', 1)[1]).split('>$')[1]).split('<')[0].replace(',', ''))
+
+					if symbol in target:
+						tp=float(target[symbol][0])
+						tl=float(target[symbol][1])
+					else:
+						tp=0
+						tl=0
+					t=th,tl
+					target.update({symbol:t})
+					np.save('target.npy', target)
+					break
 			else:
 				th='N/A'
 
@@ -446,13 +449,14 @@ if args.quote:
 		time.sleep(1)
 		r = requests.get(url)
 	r = r.text
+
 	for line in r.split('\n'):
 		if re.search('price-updated', line):
 			found=str(line)
 			price = found.split('>$',1)[1].split('<')[0].replace(',', '')
 			change = found.split('>')[4].split('&')[0].replace(' ','')
 			percent = (found.split('>')[4].split('&')[1].split('(')[1].split(')')[0])
-
+			
 	if 'price' not in locals():
 		print("Data not found for: ", symbol)
 		sys.exit(1)
