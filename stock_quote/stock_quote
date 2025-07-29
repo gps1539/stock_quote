@@ -4,6 +4,7 @@ import os
 import re
 import json
 import requests
+import csv
 import numpy as np
 import argparse
 from colorama import init, Fore, Back, Style
@@ -20,7 +21,7 @@ import pandas as pd
 
 init()
 
-version = "2.0.20"
+version = "2.0.21"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -150,19 +151,30 @@ def callurl(url):
 	sys.exit(1)
 
 # function to add stock, quantity and price. checks if stock is valid
-def inputtostocks(symbol, qtn, price):
-	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol="+symbol+"&apikey="+key
+def inputtostocks(symbol, qtn, price_paid):
+#	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol="+symbol+"&apikey="+key
+	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 	try:
-		r = requests.get(url)
+		r = (requests.get(url).text)
 	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
-	r = json.dumps(r.json())
-	r = json.loads(r)	
-	if (len(r['Global Quote'])) == 0:
-		print(symbol + ' is unknown')
-		sys.exit(1)
-	paid=float(qtn*price)
+
+	for line in r.split('\n'):
+		if re.search('price-updated', line):
+			found=str(line)
+			price = float(found.split('>$',1)[1].split('<')[0].replace(',', ''))
+
+	if 'price' not in locals():
+		print (symbol + ' not found')
+		return
+
+#	r = json.dumps(r.json())
+#	r = json.loads(r)	
+#	if (len(r['Global Quote'])) == 0:
+#		print(symbol + ' is unknown')
+#		sys.exit(1)
+	paid=float(qtn*price_paid)
 	stocks.update({symbol:qtn})
 	np.save('stocks.npy', stocks) 
 	cost.update({symbol:paid})
@@ -225,6 +237,7 @@ def getprice(symbol):
 # get fundamentals for stocks
 def fundamentals():
 	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Next Earnings'))
+	earnings_list = (list(csv.reader(requests.get('https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=6month&apikey='+key).content.decode('utf-8').splitlines(), delimiter=',')))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 		r = requests.get(url).text
@@ -300,12 +313,9 @@ def fundamentals():
 					else:
 						col=(Style.RESET_ALL)
 
-		url = "https://finance.yahoo.com/quote/"+symbol
-		r = requests.get(url, headers = {'User-agent': 'your bot 0.1'}).text
-		for line in r.split('\n'):
-			if re.search('"Earnings Date">Earnings Date', line):
-				found=str(line)
-				earnings = found.split('Earnings Date')[2].split(',')[0].split('">')[1]
+		for row in earnings_list:
+			if ((row)[0]) == symbol:
+				earnings = ((row)[2])
 				break
 			else:
 				earnings = "N/A"
