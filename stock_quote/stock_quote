@@ -21,10 +21,14 @@ import pandas as pd
 
 init()
 
-version = "2.0.21"
+version = "2.0.22"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
+
+# set user agent
+s = requests.Session()
+s.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64;rv:141.0) AppleWebKit/605.1.15 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'})
 
 # command line options and help
 parser = argparse.ArgumentParser()
@@ -91,7 +95,7 @@ if args.key:
 	apikey=str(args.key[0])
 	print("Testing key " + apikey)
 	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey="+apikey
-	response = (requests.get(url))
+	response = (s.get(url))
 	print(response)
 	if (response.status_code) == 200:
 		print("passed")
@@ -139,7 +143,7 @@ nodata=[]
 # function to call url
 def callurl(url):
 	try:
-		r = requests.get(url)
+		r = s.get(url)
 	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
@@ -152,10 +156,9 @@ def callurl(url):
 
 # function to add stock, quantity and price. checks if stock is valid
 def inputtostocks(symbol, qtn, price_paid):
-#	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol="+symbol+"&apikey="+key
 	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 	try:
-		r = (requests.get(url).text)
+		r = s.get(url).text
 	except requests.exceptions.RequestException as e:
 		print('http timeout getting ' + symbol)
 		sys.exit(1)
@@ -169,11 +172,6 @@ def inputtostocks(symbol, qtn, price_paid):
 		print (symbol + ' not found')
 		return
 
-#	r = json.dumps(r.json())
-#	r = json.loads(r)	
-#	if (len(r['Global Quote'])) == 0:
-#		print(symbol + ' is unknown')
-#		sys.exit(1)
 	paid=float(qtn*price_paid)
 	stocks.update({symbol:qtn})
 	np.save('stocks.npy', stocks) 
@@ -206,10 +204,10 @@ def removestocks(sym):
 def getprice(symbol):
 	try:
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
-		r = requests.get(url)
+		r = s.get(url)
 		if (r.status_code) != 200:
 			time.sleep(1)
-			r = requests.get(url)
+			r = s.get(url)
 		r = r.text
 
 		for line in r.split('\n'):
@@ -237,10 +235,11 @@ def getprice(symbol):
 # get fundamentals for stocks
 def fundamentals():
 	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Next Earnings'))
-	earnings_list = (list(csv.reader(requests.get('https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=6month&apikey='+key).content.decode('utf-8').splitlines(), delimiter=',')))
+	earnings_list = (list(csv.reader(s.get('https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=6month&apikey='+key).content.decode('utf-8').splitlines(), delimiter=',')))
 	for symbol in sorted(stocks.keys()):
 		url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
-		r = requests.get(url).text
+
+		r = s.get(url).text	
 
 		for line in r.split('\n'):
 			if re.search('>Price Target<', line):
@@ -454,10 +453,10 @@ if args.quote:
 	symbol=str(args.quote[0])
 	url = "https://www.marketbeat.com/stocks/NASDAQ/"+symbol
 
-	r = requests.get(url)
+	r = s.get(url)
 	if (r.status_code) != 200:
 		time.sleep(1)
-		r = requests.get(url)
+		r = s.get(url)
 	r = r.text
 
 	for line in r.split('\n'):
