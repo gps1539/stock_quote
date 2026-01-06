@@ -22,7 +22,7 @@ import yfinance as yf
 
 init()
 
-version = "2.1.0"
+version = "2.1.1"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -395,7 +395,10 @@ if args.quote:
 	data = yf.Ticker(symbol)
 	price = data.info['regularMarketPrice']
 	change = data.info['regularMarketChange']
-	pe = data.info['forwardPE']
+	try:
+		pe = round(data.info['forwardPE'],2)
+	except KeyError:
+		pe = 'N/A'
 	high52 = data.info['fiftyTwoWeekHigh']
 	low52 = data.info['fiftyTwoWeekLow']
 	print(price, change, pe, high52, low52)
