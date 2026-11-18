@@ -22,7 +22,7 @@ import yfinance as yf
 
 init()
 
-version = "2.1.2"
+version = "2.1.3"
 
 # set directory to user's home (should work for Linux, Mac and Windows)
 os.chdir(os.path.expanduser("~"))
@@ -42,7 +42,6 @@ parser.add_argument("-d","--delete", nargs='+', help="delete a symbol")
 parser.add_argument("-f","--fundamentals", help="get target price, upside, P/E and 52 week Highs & Lows",action="store_true")
 parser.add_argument("-g","--dailygain", help="display stocks by today's gainers and losers",action="store_true")
 parser.add_argument("-G","--totalgain", help="display stocks by total gainers and losers",action="store_true")
-parser.add_argument("-k","--key", nargs='+', help="add an api key, see https://www.alphavantage.co/")
 parser.add_argument("-n","--news", nargs='+', help="opens news page(s) for symbols in your browser")
 parser.add_argument("-o","--offline", help="displays last downloaded data",action="store_true")
 parser.add_argument("-p","--portfolio", help="choose a portfolio")
@@ -92,30 +91,11 @@ if args.version:
         print('version ' + version)
         sys.exit(1)
 
-if args.key:
-	apikey=str(args.key[0])
-	print("Testing key " + apikey)
-	url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey="+apikey
-	response = (s.get(url))
-	print(response)
-	if (response.status_code) == 200:
-		print("passed")
-		np.save('key.npy', apikey)
-		sys.exit(1)
-	else:		
-		print('failed, please get a valid key from https://www.alphavantage.co')
-		sys.exit(1)
 if args.cash:
 	if len(args.cash)!=1:
 		print('a dollar amount is required with --cash')
 		sys.exit(1)
 	
-if os.path.exists('key.npy')==False:
-	print("Please add a valid key")
-	sys.exit(1)
-else:
-	key = np.load('key.npy', allow_pickle=True).item()
-
 if os.path.exists('stocks.npy')==False:
 	stocks={}
 else:
@@ -208,23 +188,22 @@ def getprice(symbol):
 # get fundamentals for stocks
 def fundamentals():
 	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Next Earnings'))
-	earnings_list = (list(csv.reader(s.get('https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=6month&apikey='+key).content.decode('utf-8').splitlines(), delimiter=',')))
 
 	for symbol in sorted(stocks.keys()):	
-		data = yf.Ticker(symbol)
-		price = round(data.info['regularMarketPrice'],2)
+		data = yf.Ticker(symbol).info
+		price = round(data['regularMarketPrice'],2)
 		try:
-			pe = round(data.info['trailingPE'],2)
+			pe = round(data['trailingPE'],2)
 		except KeyError:
 			pe = 'N/A'
-		high52 = data.info['fiftyTwoWeekHigh']
-		low52 = data.info['fiftyTwoWeekLow']
+		high52 = round(data['fiftyTwoWeekHigh'],2)
+		low52 = round(data['fiftyTwoWeekLow'],2)
 		try:
-			Yield = data.info['dividendYield']
+			Yield = data['dividendYield']
 		except KeyError:
 		    	Yield = 'N/A'
 		try:
-			th = round(data.info['targetMeanPrice'],2)
+			th = round(data['targetMeanPrice'],2)
 			upside=round(th/price,2)
 			if symbol in target:
 				tp=float(target[symbol][0])
@@ -249,17 +228,14 @@ def fundamentals():
 		    	col=(Style.RESET_ALL)
 
 		try:
-			consensus = data.info['recommendationKey']
+			consensus = data['recommendationKey']
 		except:
 			consensus = 'N/A'
+		try:
+			earnings = str(datetime.datetime.fromtimestamp(data['earningsTimestamp']).date())
+		except:
+			earnings = 'N/A'
 			
-		for row in earnings_list:
-			if ((row)[0]) == symbol:
-				earnings = ((row)[2])
-				break
-			else:
-				earnings = "N/A"
-
 		print('{:<8}'.format (symbol) + '{:<8}'.format (price) + col + '{:<8}'.format (th) + Style.RESET_ALL + '{:<8}'.format (upside) + '{:<7}'.format (pe) + '{:<7}'.format (Yield) + '{:<8}'.format (high52) + '{:<8}'.format (low52) + '{:<13}'.format (consensus) + '{:<11}'.format (earnings), sep='\n')
 		del price
 
@@ -420,8 +396,9 @@ if args.quote:
 
 if args.stats:
 	symbol=str(args.stats[0])
-	url = "https://www.alphavantage.co/query?function=OVERVIEW&symbol="+symbol+"&apikey="+key
-	callurl(url)
+	for key, value in (yf.Ticker(symbol).info).items():
+		print(f"{key}: {value}")
+	sys.exit(1)
 
 # call removestocks if --delete option on command line      
 if args.delete:
