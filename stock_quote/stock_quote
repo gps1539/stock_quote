@@ -187,7 +187,7 @@ def getprice(symbol):
 
 # get fundamentals for stocks
 def fundamentals():
-	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Next Earnings'))
+	print('{:<8}'.format ('Symbol') + '{:<8}'.format ('Price') + '{:<8}'.format ('Target') + '{:<8}'.format ('Upside') + '{:<7}'.format ('P/E') + '{:<7}'.format ('Yield') + '{:<8}'.format ('High52') + '{:<8}'.format ('Low52') + '{:<13}'.format ('Consensus') + '{:<11}'.format ('Earnings'))
 
 	for symbol in sorted(stocks.keys()):	
 		data = yf.Ticker(symbol).info
